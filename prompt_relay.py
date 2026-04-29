@@ -1,8 +1,22 @@
 import logging
 import math
+from dataclasses import dataclass, field
+
 import torch
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class RelayConfig:
+    """Segment metadata passed from PromptRelayEncode to PromptRelayLoraSchedule."""
+    num_segments: int
+    segment_lengths: list  # latent frame counts per segment
+    tokens_per_frame: int
+    latent_frames: int
+    epsilon: float
+    arch: str
+    patch_size: tuple
 
 
 def build_temporal_cost(q_token_idx, Lq, Lk, device, dtype, tokens_per_frame):
