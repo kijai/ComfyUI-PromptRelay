@@ -192,8 +192,11 @@ def distribute_segment_lengths(num_segments, latent_frames, specified_lengths=No
         lengths = specified_lengths
     else:
         # ceil division — matches reference implementation
-        step = -(-latent_frames // num_segments)
-        lengths = [step] * num_segments
+        # step = -(-latent_frames // num_segments)
+        # lengths = [step] * num_segments
+        base_step = latent_frames // num_segments
+        remainder = latent_frames % num_segments
+        lengths = [base_step + 1 if i < remainder else base_step for i in range(num_segments)]
 
     effective = []
     cursor = 0
