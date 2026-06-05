@@ -45,6 +45,13 @@ class PromptRelaySmartEncode(io.ComfyNode):
         if not valid_segments:
             valid_segments = [{"text": " ", "weight": 1.0}]
 
+        global_prompt_str = global_prompt.strip()
+        if not global_prompt_str and len(valid_segments) > 1:
+            global_prompt_str = valid_segments[0]["text"]
+            valid_segments = valid_segments[1:]
+        elif not global_prompt_str:
+            global_prompt_str = valid_segments[0]["text"]
+
         raw_tokenizer = get_raw_tokenizer(clip) if normalize_by_tokens else None
 
         local_prompts_list = []
@@ -71,10 +78,6 @@ class PromptRelaySmartEncode(io.ComfyNode):
 
         scale_factor = 100000.0
         segment_lengths_str = ", ".join(str(int(w * scale_factor)) for w in weights_list)
-
-        global_prompt_str = global_prompt.strip()
-        if not global_prompt_str and valid_segments:
-            global_prompt_str = valid_segments[0]["text"]
 
         patched, conditioning = _encode_relay(
             model, clip, latent, global_prompt_str, local_prompts_str, segment_lengths_str, epsilon
