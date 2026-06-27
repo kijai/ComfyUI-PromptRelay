@@ -225,7 +225,12 @@ class PromptRelayEncodeTimeline(io.ComfyNode):
         patched, conditioning = _encode_relay(
             model, clip, latent, global_prompt, local_prompts, segment_lengths, epsilon, relay_options,
         )
-        return io.NodeOutput(patched, conditioning)
+        # Report the fully-resolved max_frames back to the timeline editor. The
+        # graph executor resolves this input no matter what feeds it (INT
+        # Constant, Math Expression, a KJNodes calculator that exposes nothing to
+        # the frontend, etc.), so this is the robust way to keep the gauge in
+        # sync after a run when the upstream value isn't knowable in the UI.
+        return io.NodeOutput(patched, conditioning, ui={"max_frames": [int(max_frames)]})
 
 
 NODE_CLASS_MAPPINGS = {

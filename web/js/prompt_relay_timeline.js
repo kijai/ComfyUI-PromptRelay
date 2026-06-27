@@ -70,6 +70,11 @@ class TimelineEditor {
     this.localPromptsWidget = node.widgets.find(w => w.name === "local_prompts");
     this.segmentLengthsWidget = node.widgets.find(w => w.name === "segment_lengths");
 
+    // Last value resolved from a connected max_frames input (null = not connected
+    // or upstream value not knowable on the frontend). Used to detect changes so
+    // the gauge can follow an upstream node before the workflow is run.
+    this._lastResolvedMax = null;
+
     this.timeline = parseInitial(this.timelineDataWidget?.value, this.getMaxFrames());
     this.selectedIndex = 0;
     this.hoverIndex = -1;
@@ -87,13 +92,199 @@ class TimelineEditor {
 
     this.buildDOM();
     this.bindEvents();
+    // Adopt an already-connected max_frames value (e.g. a workflow loaded with
+    // the input wired) before the first paint.
+    this.syncConnectedMaxFrames();
     this.syncWidgetsFromTimeline();
     this.updateUIFromSelection();
     this.render();
+
+    // Editing an upstream node's value (e.g. a KJNodes INT Constant feeding a
+    // Set/Get pair) does not notify this node — and onDrawForeground doesn't
+    // reliably fire on a DOM-widget node in the Vue frontend. A low-frequency
+    // poll is the dependable cross-frontend trigger. syncConnectedMaxFrames()
+    // early-returns and does no work unless the resolved value actually changed,
+    // so this stays cheap.
+    this._pollTimer = setInterval(() => {
+      try {
+        if (this.syncConnectedMaxFrames()) this.render();
+      } catch (_) {}
+    }, 250);
   }
 
   getMaxFrames() {
     return Math.max(1, parseInt(this.maxFramesWidget?.value, 10) || 1);
+  }
+
+  // Coerce an arbitrary value (number, numeric string, or [value] array as
+  // ComfyUI stores executed outputs) to a finite integer, or null.
+  _toInt(raw) {
+    if (Array.isArray(raw)) raw = raw[0];
+    if (raw == null || typeof raw === "boolean") return null;
+    const v = parseInt(raw, 10);
+    return Number.isFinite(v) ? v : null;
+  }
+
+  // Read a numeric value from a terminal source node, trying each knowable
+  // strategy in priority order. Every access is guarded so an unexpected node
+  // shape can never throw — connecting ANY node must at worst leave the gauge
+  // on its last value, never break the editor.
+  //
+  // Strategies (first finite integer wins):
+  //   1. A value-bearing widget: "value" (INT/Float Constant, PrimitiveNode),
+  //      "max_frames", or "Value"/"int"/"number"; or the sole widget if numeric.
+  //   2. The node's LAST EXECUTED output via app.nodeOutputs[nodeId] — this is
+  //      how computed nodes (Math Expression, calculators) expose their result.
+  //      Known only after the node has run once; updates on each subsequent run.
+  //   3. A literal value cached on the output slot (_data), if present.
+  // Returns null when none apply (e.g. a never-run pure-compute node) — by
+  // design, since such a value cannot be known on the frontend before a run.
+  _readNumericFromSource(srcNode, slot) {
+    if (!srcNode) return null;
+
+    // 1. Widgets.
+    try {
+      const ws = srcNode.widgets;
+      if (Array.isArray(ws) && ws.length) {
+        const named = ws.find(x => x?.name === "value")
+                   ?? ws.find(x => x?.name === "max_frames")
+                   ?? ws.find(x => ["Value", "int", "INT", "number", "Number"].includes(x?.name));
+        const candidate = named ?? (ws.length === 1 ? ws[0] : null);
+        if (candidate != null) {
+          const v = this._toInt(candidate.value);
+          if (v != null) return v;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Last executed output (covers Math Expression and any computed node).
+    try {
+      const outputs = app?.nodeOutputs?.[String(srcNode.id)];
+      // ComfyUI shapes vary: {value:[n]}, or a slot-keyed object, or a plain value.
+      const fromValue = outputs?.value;
+      let v = this._toInt(fromValue);
+      if (v == null && outputs != null && typeof outputs === "object") {
+        // Try the specific slot, then any numeric-looking field.
+        v = this._toInt(outputs[slot]);
+        if (v == null) {
+          for (const key of Object.keys(outputs)) {
+            v = this._toInt(outputs[key]);
+            if (v != null) break;
+          }
+        }
+      }
+      if (v == null) v = this._toInt(outputs);
+      if (v != null) return v;
+    } catch (_) {}
+
+    // 3. Literal value cached on the output slot.
+    try {
+      const v = this._toInt(srcNode.outputs?.[slot]?._data);
+      if (v != null) return v;
+    } catch (_) {}
+
+    return null;  // not knowable on the frontend
+  }
+
+  // Find a KJNodes SetNode by its variable name, searching the given graph and
+  // its ancestors (mirrors KJNodes' own scoped lookup). Returns {node, graph}
+  // so the caller can continue the backward walk in the setter's own graph.
+  _findSetNodeByName(graph, name) {
+    if (!name) return null;
+    let g = graph;
+    const visited = new Set();
+    while (g && !visited.has(g)) {
+      visited.add(g);
+      const nodes = g._nodes || [];
+      for (const n of nodes) {
+        if ((n.type === "SetNode" || n.comfyClass === "SetNode")
+            && n.widgets?.[0]?.value === name) {
+          return { node: n, graph: g };
+        }
+      }
+      // Hop to the parent graph if this is a subgraph (best-effort across builds).
+      g = g._subgraph_node?.graph ?? g.parent ?? g._parent ?? null;
+    }
+    return null;
+  }
+
+  // Walk the graph backward from the max_frames input and return the upstream
+  // value if the frontend can know it without running the workflow (i.e. the
+  // source node exposes it as a widget value or a literal output). Returns null
+  // when max_frames isn't connected, or when the upstream value is only computed
+  // server-side and therefore can't be previewed.
+  resolveConnectedMaxFrames() {
+    const node = this.node;
+    let curGraph = node?.graph;
+    if (!curGraph) return null;
+
+    const inputIndex = node.inputs?.findIndex(i => i.name === "max_frames");
+    if (inputIndex == null || inputIndex < 0) return null;
+    const input = node.inputs[inputIndex];
+    if (input?.link == null) return null;  // not connected
+
+    // Follow links backward, hopping through Reroute and KJNodes Get/Set nodes,
+    // with a small guard against cycles / very long chains.
+    let linkId = input.link;
+    const seen = new Set();
+    for (let hops = 0; hops < 64; hops++) {
+      if (linkId == null || seen.has(linkId)) return null;
+      seen.add(linkId);
+      const link = curGraph.links?.[linkId];
+      if (!link) return null;
+      const srcNode = curGraph.getNodeById?.(link.origin_id);
+      if (!srcNode) return null;
+
+      // A Reroute passes its single input through — keep walking upstream.
+      const isReroute = srcNode.type === "Reroute" || srcNode.comfyClass === "Reroute";
+      if (isReroute && srcNode.inputs?.[0]?.link != null) {
+        linkId = srcNode.inputs[0].link;
+        continue;
+      }
+
+      // KJNodes GetNode is a virtual node: it holds no value, only a "Constant"
+      // widget naming a SetNode. Resolve the matching SetNode (in this graph or
+      // an ancestor) and continue the walk from the SetNode's input link.
+      const isGetNode = srcNode.type === "GetNode" || srcNode.comfyClass === "GetNode";
+      if (isGetNode) {
+        const name = srcNode.widgets?.[0]?.value;
+        const setter = this._findSetNodeByName(curGraph, name);
+        const setterLink = setter?.node?.inputs?.[0]?.link;
+        if (setter && setterLink != null) {
+          curGraph = setter.graph;   // setter's input link lives in its own graph
+          seen.clear();              // link ids are per-graph; avoid false cycle hits
+          linkId = setterLink;
+          continue;
+        }
+        return null;  // unpaired GetNode / SetNode has no input → not knowable
+      }
+
+      // Terminal source node. Try each strategy in turn and accept the first
+      // that yields a finite integer. Each strategy is wrapped so a malformed /
+      // unexpected source can never throw — robustness for ANY upstream node.
+      return this._readNumericFromSource(srcNode, link.origin_slot);
+    }
+    return null;
+  }
+
+  // If a connected upstream max_frames value is knowable and has changed, push it
+  // into the widget and refit the timeline. Returns true if anything changed.
+  syncConnectedMaxFrames() {
+    const resolved = this.resolveConnectedMaxFrames();
+    if (resolved == null) {
+      this._lastResolvedMax = null;
+      return false;
+    }
+    if (resolved === this._lastResolvedMax) return false;
+    this._lastResolvedMax = resolved;
+    if (this.maxFramesWidget && this.maxFramesWidget.value !== resolved) {
+      this.maxFramesWidget.value = resolved;
+      this.trimToFit();
+      this.commit();
+      this.updateUIFromSelection();
+      return true;
+    }
+    return false;
   }
 
   getFps() {
@@ -874,6 +1065,7 @@ class TimelineEditor {
 
   destroy() {
     this.resizeObserver?.disconnect();
+    if (this._pollTimer) { clearInterval(this._pollTimer); this._pollTimer = null; }
     if (this._animRaf) cancelAnimationFrame(this._animRaf);
     if (this._textCommitTimer) {
       clearTimeout(this._textCommitTimer);
@@ -928,6 +1120,55 @@ app.registerExtension({
         return onRemoved?.apply(this, arguments);
       };
 
+      // When the max_frames input is connected/disconnected, immediately try to
+      // adopt the upstream value so the gauge reflects it without a run.
+      const onConnectionsChange = this.onConnectionsChange;
+      this.onConnectionsChange = function (type, index, connected, link_info, ioSlot) {
+        const out = onConnectionsChange?.apply(this, arguments);
+        if (this._timelineEditor && this._timelineEditor.syncConnectedMaxFrames()) {
+          this._timelineEditor.render();
+        }
+        return out;
+      };
+
+      // While max_frames is wired to an upstream node, that node can change its
+      // value (e.g. you edit a Primitive's widget) without notifying us. The node
+      // redraw is the one signal we reliably get on the canvas, so poll the
+      // resolved value here and refit only when it actually changes.
+      const onDrawForeground = this.onDrawForeground;
+      this.onDrawForeground = function (ctx, gfx) {
+        if (this._timelineEditor && this._timelineEditor.syncConnectedMaxFrames()) {
+          this._timelineEditor.render();
+        }
+        return onDrawForeground?.apply(this, arguments);
+      };
+
+      // After a run, the Python node reports the fully-resolved max_frames back
+      // via NodeOutput(ui={"max_frames": [n]}). This is the robust sync for any
+      // upstream node — including ones (e.g. KJNodes calculators) that expose no
+      // value to the frontend, so the graph-walk resolver can't see them.
+      const onExecuted = this.onExecuted;
+      this.onExecuted = function (message) {
+        const out = onExecuted?.apply(this, arguments);
+        try {
+          let mf = message?.max_frames;
+          if (Array.isArray(mf)) mf = mf[0];
+          const v = parseInt(mf, 10);
+          const ed = this._timelineEditor;
+          if (ed && Number.isFinite(v) && v > 0 && ed.maxFramesWidget
+              && ed.maxFramesWidget.value !== v) {
+            ed.maxFramesWidget.value = v;
+            // Mirror the resolver's bookkeeping so the poll doesn't fight this.
+            ed._lastResolvedMax = v;
+            ed.trimToFit();
+            ed.commit();
+            ed.updateUIFromSelection();
+            ed.render();
+          }
+        } catch (_) {}
+        return out;
+      };
+
       const onConfigure = this.onConfigure;
       this.onConfigure = function (info) {
         const out = onConfigure?.apply(this, arguments);
@@ -938,6 +1179,9 @@ app.registerExtension({
         // Rebuild from restored widget values
         setTimeout(() => {
           if (this._timelineEditor) {
+            // Adopt a connected upstream max_frames first so the restored timeline
+            // is fit to the live value rather than the saved widget value.
+            this._timelineEditor.syncConnectedMaxFrames();
             this._timelineEditor.timeline = parseInitial(
               this._timelineEditor.timelineDataWidget?.value,
               this._timelineEditor.getMaxFrames(),
