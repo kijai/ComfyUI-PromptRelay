@@ -1,0 +1,10 @@
+# Per-project state + generated media
+projects/
+
+# Synthesised placeholder assets (regenerated on first run)
+assets/music/*_bed.wav
+assets/sfx/*.wav
+assets/placeholder_cat.png
+
+__pycache__/
+*.pyc

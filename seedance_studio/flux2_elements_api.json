@@ -1,0 +1,210 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "1.png"
+    },
+    "_meta": {
+      "title": "ELEMENT 1"
+    }
+  },
+  "2": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "1.png"
+    },
+    "_meta": {
+      "title": "ELEMENT 2"
+    }
+  },
+  "3": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "Flux2-Klein",
+      "images": ["8", 0]
+    }
+  },
+  "4": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    }
+  },
+  "5": {
+    "class_type": "Flux2Scheduler",
+    "inputs": {
+      "steps": 6,
+      "width": ["18", 0],
+      "height": ["18", 1]
+    }
+  },
+  "6": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "cfg": 1,
+      "model": ["19", 0],
+      "positive": ["25", 0],
+      "negative": ["23", 0]
+    }
+  },
+  "7": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": ["9", 0],
+      "guider": ["6", 0],
+      "sampler": ["4", 0],
+      "sigmas": ["5", 0],
+      "latent_image": ["17", 0]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["7", 0],
+      "vae": ["13", 0]
+    }
+  },
+  "9": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 1112302723177420
+    }
+  },
+  "10": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux-2-klein-9b.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "11": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+      "type": "flux2",
+      "device": "default"
+    }
+  },
+  "12": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "combine the reference images into one realistic photo",
+      "clip": ["11", 0]
+    },
+    "_meta": {
+      "title": "PROMPT"
+    }
+  },
+  "13": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    }
+  },
+  "14": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "megapixels": 1,
+      "resolution_steps": 1,
+      "image": ["1", 0]
+    }
+  },
+  "15": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "megapixels": 1,
+      "resolution_steps": 1,
+      "image": ["2", 0]
+    }
+  },
+  "16": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": ["12", 0]
+    }
+  },
+  "17": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": ["18", 0],
+      "height": ["18", 1],
+      "batch_size": 1
+    }
+  },
+  "18": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": ["14", 0]
+    }
+  },
+  "19": {
+    "class_type": "Power Lora Loader (rgthree)",
+    "inputs": {
+      "model": ["10", 0],
+      "lora_1": {
+        "on": true,
+        "lora": "flux klein-9b-turn2real_v1_ep4.safetensors",
+        "strength": 0.9
+      },
+      "lora_2": {
+        "on": false,
+        "lora": "breast_slider_klein9b_v11_20260213_091528.safetensors",
+        "strength": 10
+      },
+      "lora_3": {
+        "on": false,
+        "lora": "darkBeastFeb1626Latest_dbkBlitzV15.safetensors",
+        "strength": 1
+      },
+      "lora_4": {
+        "on": false,
+        "lora": "ass_slider_klein9b_v12_20260216_080807.safetensors",
+        "strength": 1
+      }
+    }
+  },
+  "20": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": ["16", 0],
+      "latent": ["21", 0]
+    }
+  },
+  "21": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": ["14", 0],
+      "vae": ["13", 0]
+    }
+  },
+  "22": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": ["12", 0],
+      "latent": ["21", 0]
+    }
+  },
+  "23": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": ["20", 0],
+      "latent": ["24", 0]
+    }
+  },
+  "24": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": ["15", 0],
+      "vae": ["13", 0]
+    }
+  },
+  "25": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": ["22", 0],
+      "latent": ["24", 0]
+    }
+  }
+}

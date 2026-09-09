@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PromptRelay Video Studio</title>
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#141821; --panel2:#1b2130; --line:#252c3a;
+    --text:#e6e9f0; --muted:#8a93a6; --accent:#6c5ce7; --accent2:#8b7bff;
+    --ok:#2ecc71; --run:#f1c40f; --fail:#e74c3c; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#1a1030 0,var(--bg) 55%);
+    color:var(--text);font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--accent2);text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .logo{width:36px;height:36px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:grid;place-items:center;font-size:19px}
+  header h1{font-size:18px;margin:0}
+  header .sub{color:var(--muted);font-size:12px}
+  .badge{margin-left:auto;font-size:12px;padding:5px 12px;border-radius:20px;
+    background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+  .badge.ready{color:var(--ok);border-color:#204d33}
+  .badge.off{color:var(--fail);border-color:#4d2020}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .panel{background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:16px}
+  .panel h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 14px}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 6px}
+  textarea,input,select{width:100%;background:var(--panel2);color:var(--text);
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;outline:none}
+  textarea{min-height:70px;resize:vertical}
+  textarea:focus,input:focus,select:focus{border-color:var(--accent)}
+  .row{display:flex;gap:10px}
+  .row>div{flex:1}
+  /* mode tabs */
+  .tabs{display:flex;gap:6px;background:var(--panel2);padding:4px;border-radius:11px;
+    border:1px solid var(--line);margin-bottom:4px}
+  .tab{flex:1;text-align:center;padding:8px;border-radius:8px;cursor:pointer;color:var(--muted);
+    font-weight:600;font-size:13px;transition:.15s}
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+  .tab.disabled{opacity:.45;cursor:not-allowed}
+  .drop{border:1.5px dashed var(--line);border-radius:12px;padding:14px;text-align:center;
+    color:var(--muted);cursor:pointer;background:var(--panel2);transition:.15s}
+  .drop:hover{border-color:var(--accent)}
+  .drop.has{padding:0;border-style:solid;overflow:hidden}
+  .drop img{width:100%;max-height:210px;object-fit:cover;display:block}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{font-size:12px;padding:5px 11px;border-radius:16px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--muted);cursor:pointer;transition:.12s}
+  .chip:hover{border-color:var(--accent2);color:var(--text)}
+  .chip.on{background:rgba(108,92,231,.18);border-color:var(--accent);color:var(--text)}
+  .check{display:flex;align-items:center;gap:8px;margin-top:14px;color:var(--text);font-size:13px}
+  .check input{width:auto}
+  .seedrow{display:flex;gap:8px;align-items:flex-end}
+  .seedrow input{flex:1}
+  .btns{display:flex;gap:10px;margin-top:16px}
+  button{border:0;border-radius:10px;padding:11px 16px;font:inherit;font-weight:600;cursor:pointer}
+  .primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;flex:1}
+  .primary:disabled{opacity:.5;cursor:not-allowed}
+  .ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+  .icon-btn{background:var(--panel2);border:1px solid var(--line);color:var(--muted);padding:11px 12px}
+  .icon-btn:hover{color:var(--text);border-color:var(--accent2)}
+  .result-video{width:100%;background:#000;border-radius:12px;aspect-ratio:16/9;
+    display:grid;place-items:center;color:var(--muted);overflow:hidden;text-align:center;padding:10px}
+  .result-video video{width:100%;height:100%;object-fit:contain;background:#000}
+  .meta{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .status-pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;
+    background:var(--panel2);border:1px solid var(--line)}
+  .status-pill.SUCCEEDED{color:var(--ok);border-color:#204d33}
+  .status-pill.RUNNING,.status-pill.QUEUED{color:var(--run);border-color:#4d4620}
+  .status-pill.FAILED{color:var(--fail);border-color:#4d2020}
+  .tasks{margin-top:16px}
+  .task{display:flex;gap:12px;align-items:center;padding:11px 12px;border:1px solid var(--line);
+    border-radius:11px;background:var(--panel2);margin-bottom:9px;cursor:pointer;transition:.12s}
+  .task:hover{border-color:var(--accent)}
+  .task .txt{flex:1;min-width:0}
+  .task .p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+  .task .s{font-size:11px;color:var(--muted)}
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:6px}
+  .gcard{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#000;position:relative;cursor:pointer}
+  .gcard video{width:100%;height:110px;object-fit:cover;display:block}
+  .gcard .dl{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border-radius:7px;
+    padding:3px 7px;font-size:12px;color:#fff}
+  .gcard .tag{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.55);border-radius:7px;
+    padding:2px 7px;font-size:10px;color:#cfd6e4;text-transform:uppercase;letter-spacing:.06em}
+  .datehdr{font-size:13px;font-weight:700;color:var(--text);margin:18px 0 8px;
+    display:flex;align-items:center;gap:10px}
+  .datehdr:first-child{margin-top:4px}
+  .datehdr::after{content:"";flex:1;height:1px;background:var(--line)}
+  .drop{position:relative}
+  .drop .clearel{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:0;
+    border-radius:7px;padding:2px 8px;color:#fff;cursor:pointer;font-size:12px}
+  .drop video{width:100%;max-height:210px;object-fit:cover;display:block}
+  .spinner{width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent2);
+    border-radius:50%;animation:spin .8s linear infinite;display:inline-block;vertical-align:-2px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .hint{font-size:11px;color:var(--muted);margin-top:6px}
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--panel2);
+    border:1px solid var(--line);padding:11px 18px;border-radius:11px;font-size:13px;opacity:0;
+    transition:opacity .25s;pointer-events:none;z-index:50;max-width:80vw}
+  #toast.show{opacity:1}
+  #toast.err{border-color:var(--fail);color:#ffb4ab}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🎬</div>
+    <div>
+      <h1>PromptRelay Video Studio</h1>
+      <div class="sub">Local video generation · LTX 2.3 via ComfyUI · unlimited &amp; private</div>
+    </div>
+    <a class="badge" href="/promptrelay/sequence/ui"
+       style="color:var(--accent2);border-color:var(--accent);margin-left:auto">🎞️ AI Border Studio →</a>
+    <div id="badge" class="badge" style="margin-left:10px">checking…</div>
+  </header>
+
+  <div class="grid">
+    <!-- GENERATE -->
+    <section class="panel">
+      <h2>Generate</h2>
+
+      <div class="tabs">
+        <div id="tabT2v" class="tab" data-mode="t2v">✦ Text→Video</div>
+        <div id="tabI2v" class="tab active" data-mode="i2v">🖼 Image→Video</div>
+        <div id="tabFlf" class="tab" data-mode="flf">⇥ First→Last</div>
+        <div id="tabMotion" class="tab" data-mode="motion">🎭 Motion</div>
+      </div>
+
+      <label>Prompt</label>
+      <textarea id="prompt" placeholder="Describe the shot — subject, action, camera, mood…"></textarea>
+      <div class="chips" id="styleChips"></div>
+
+      <div id="elemBlock" style="display:none">
+        <label>Elements — reference images <span class="hint" style="margin:0">(click a thumb to insert @image1 / @image2 into the prompt)</span></label>
+        <div class="row">
+          <div><div id="elemDropA" class="drop">+ @image1 · character / object</div>
+            <input id="elemFileA" type="file" accept="image/*" hidden /></div>
+          <div><div id="elemDropB" class="drop">+ @image2 · optional second reference</div>
+            <input id="elemFileB" type="file" accept="image/*" hidden /></div>
+        </div>
+        <div class="hint">With an element attached, Flux2 Klein composes a still from your prompt + references, then LTX animates it (~10–15 min total). Output aspect follows @image1.</div>
+      </div>
+
+      <div id="i2vBlock">
+        <label>Start image</label>
+        <div id="drop" class="drop">Click or drop an image · the clip animates from this frame</div>
+        <input id="file" type="file" accept="image/*" hidden />
+        <label class="check"><input id="fixed" type="checkbox" /> Fixed camera (locked-off shot)</label>
+        <label class="check"><input id="fitBox" type="checkbox" /> Fit whole image — letterbox, no crop <span class="hint" style="margin:0">(needs a fixed resolution, not "Follow")</span></label>
+      </div>
+
+      <div id="flfBlock" style="display:none">
+        <div class="row">
+          <div>
+            <label>Start frame (first)</label>
+            <div id="flfDropA" class="drop">Click / drop the FIRST frame</div>
+            <input id="flfFileA" type="file" accept="image/*" hidden />
+          </div>
+          <div>
+            <label>End frame (last)</label>
+            <div id="flfDropB" class="drop">Click / drop the LAST frame</div>
+            <input id="flfFileB" type="file" accept="image/*" hidden />
+          </div>
+        </div>
+        <div class="row">
+          <div><label>First frame strength · <span id="fsVal">0.50</span></label>
+            <input id="flfFirstStr" type="range" min="0" max="1" step="0.05" value="0.5" style="padding:0" /></div>
+          <div><label>Last frame strength · <span id="lsVal">1.00</span></label>
+            <input id="flfLastStr" type="range" min="0" max="1" step="0.05" value="1.0" style="padding:0" /></div>
+        </div>
+        <div class="hint">Higher = holds that frame more strictly. Defaults (0.5 / 1.0) land cleanly on the end frame; raise First toward 0.8 if the opening drifts.</div>
+      </div>
+
+      <div id="motionBlock" style="display:none">
+        <div class="row">
+          <div>
+            <label>Character image</label>
+            <div id="motDropImg" class="drop">Click / drop the character image</div>
+            <input id="motFileImg" type="file" accept="image/*" hidden />
+          </div>
+          <div>
+            <label>Driving video (motion to copy)</label>
+            <div id="motDropVid" class="drop">Click / drop the reference video</div>
+            <input id="motFileVid" type="file" accept="video/*" hidden />
+          </div>
+        </div>
+        <div class="row">
+          <div><label>Output size</label>
+            <select id="motRes">
+              <option value="480x832">480×832 · portrait (fast)</option>
+              <option value="640x640">640×640 · square</option>
+              <option value="832x480">832×480 · landscape</option>
+              <option value="720x720">720×720 · square HQ</option>
+            </select></div>
+          <div><label>Use of the video</label>
+            <select id="motCap">
+              <option value="81">first ~3 s (81 frames)</option>
+              <option value="145">first ~5 s (145 frames)</option>
+              <option value="0">whole video</option>
+            </select></div>
+        </div>
+        <div class="hint">Wan 2.2 Animate: your character replaces the person in the video and performs the exact same motion (pose + face + relight). Heavy on 16 GB — keep it short; prompt is optional.</div>
+      </div>
+
+      <div id="negBlock" style="display:none">
+        <label>Negative prompt <span class="hint" style="margin:0">(what to avoid)</span></label>
+        <textarea id="negative" style="min-height:52px" placeholder="blurry, distorted, warped, extra limbs, watermark, low quality"></textarea>
+      </div>
+
+      <div class="row" id="resRow">
+        <div>
+          <label>Aspect / Resolution</label>
+          <select id="resolution">
+            <option value="follow">Follow start image</option>
+            <option value="720p">720p</option>
+            <option value="1080p">1080p</option>
+          </select>
+        </div>
+        <div>
+          <label>Duration</label>
+          <select id="duration"><option value="default">Graph default</option></select>
+        </div>
+      </div>
+
+      <div id="qualBlock" style="display:none">
+        <label>Quality</label>
+        <select id="quality"></select>
+      </div>
+
+      <label>Seed</label>
+      <div class="seedrow">
+        <input id="seed" placeholder="random" />
+        <button class="icon-btn" id="seedRand" title="Randomize">🎲</button>
+        <button class="icon-btn" id="seedReuse" title="Reuse last render's seed">↩ reuse</button>
+      </div>
+
+      <div class="btns">
+        <button id="go" class="primary">Generate video</button>
+        <button id="surprise" class="ghost">✨ Surprise me</button>
+      </div>
+      <div class="hint">Tip: ⌘/Ctrl + Enter to generate.</div>
+    </section>
+
+    <!-- RESULT -->
+    <section class="panel">
+      <h2>Result</h2>
+      <div id="resultVideo" class="result-video">No render yet — generate a clip to see it here.</div>
+      <div class="meta">
+        <span id="resultStatus" class="status-pill">IDLE</span>
+        <span id="resultInfo"></span>
+        <a id="resultDownload" href="#" download style="margin-left:auto;display:none">⬇ Download</a>
+      </div>
+    </section>
+  </div>
+
+  <!-- MULTI-SHOT REEL -->
+  <section class="panel tasks">
+    <h2>Multi-shot Reel</h2>
+    <div class="hint" style="margin-top:0">Write a few shots — each becomes a short clip, then they're stitched into one video.</div>
+    <div class="row" style="margin-top:12px">
+      <div><label>Resolution</label><select id="reelRes"></select></div>
+      <div><label>Quality</label><select id="reelQual"></select></div>
+      <div><label>Transition</label><select id="reelTrans">
+        <option value="crossfade">Crossfade</option><option value="cut">Hard cut</option></select></div>
+    </div>
+    <div id="shotList" style="margin-top:12px"></div>
+    <button id="addShot" class="ghost" style="margin-top:4px">+ Add shot</button>
+    <div class="btns"><button id="buildReel" class="primary">🎞 Build Reel</button></div>
+    <div id="reelStatus" class="meta" style="min-height:20px"></div>
+    <div id="reelResult"></div>
+  </section>
+
+  <!-- HISTORY (persistent, grouped by day) -->
+  <section class="panel tasks">
+    <h2>History</h2>
+    <div id="historyBox"><div class="hint">Finished clips appear here, grouped by day — they survive restarts.</div></div>
+  </section>
+
+  <!-- TASKS -->
+  <section class="panel tasks">
+    <h2>Tasks</h2>
+    <div id="taskList"><div class="hint">No tasks yet.</div></div>
+  </section>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = "/promptrelay/seedance/api";
+let imageToken = null, activeTaskId = null, lastSeed = null, mode = "i2v";
+let t2vReady = false, i2vReady = false, flfReady = false, elementsReady = false, motionReady = false;
+let flfFirstToken = null, flfLastToken = null;
+let elemTokenA = null, elemTokenB = null, motImgToken = null, motVidToken = null;
+const STYLES = ["cinematic","photorealistic","anime","golden hour","slow motion",
+  "shallow depth of field","dramatic lighting","handheld","aerial drone shot","vintage film"];
+const activeStyles = new Set();
+const $ = id => document.getElementById(id);
+
+function toast(msg, err){ const t=$("toast"); t.textContent=msg; t.className="show"+(err?" err":"");
+  setTimeout(()=>t.className="", 2600); }
+
+// ---- style chips ----
+$("styleChips").innerHTML = STYLES.map(s=>`<span class="chip" data-s="${s}">${s}</span>`).join("");
+$("styleChips").querySelectorAll(".chip").forEach(c=>{
+  c.addEventListener("click", ()=>{ const s=c.dataset.s;
+    if(activeStyles.has(s)){activeStyles.delete(s);c.classList.remove("on");}
+    else{activeStyles.add(s);c.classList.add("on");}
+  });
+});
+function composedPrompt(){
+  const base = $("prompt").value.trim();
+  const extra = [...activeStyles].join(", ");
+  return extra ? (base ? base+", "+extra : extra) : base;
+}
+
+// ---- resolution / duration option sets per mode ----
+const TV_RES = [["720p_landscape","720p · 16:9 (1280×720)"],["720p_vertical","720p · 9:16 (720×1280)"],
+        ["1080p","1080p · 16:9 (1920×1080)"],["1080p_vertical","1080p · 9:16 (1080×1920)"],
+        ["square","Square (768×768)"],["draft","Draft · fast (640×384)"]];
+const RES_OPTS = {
+  i2v: [["follow","Follow start image"], ...TV_RES],
+  t2v: TV_RES,
+};
+const DUR_OPTS = {
+  i2v: [["5s","5 seconds"],["3s","3 seconds"],["8s","8 seconds"]],
+  t2v: [["3s","3 seconds"],["5s","5 seconds"],["8s","8 seconds"]],
+};
+const QUAL_OPTS = [["max","Max (Q6 · sharpest, RAM-offload)"],["hq","HQ (Q5 · sharp)"],["standard","Fast (Q4 · quickest)"]];
+function fillSelect(el, opts){ el.innerHTML = opts.map(([v,l])=>`<option value="${v}">${l}</option>`).join(""); }
+
+// ---- mode tabs ----
+function setMode(m){
+  if(m==="t2v" && !t2vReady){ toast("Text→Video isn't wired yet.", true); return; }
+  if(m==="flf" && !flfReady){ toast("First→Last isn't wired yet.", true); return; }
+  if(m==="motion" && !motionReady){ toast("Motion control isn't available (Wan Animate model missing).", true); return; }
+  mode = m;
+  $("tabT2v").classList.toggle("active", m==="t2v");
+  $("tabI2v").classList.toggle("active", m==="i2v");
+  $("tabFlf").classList.toggle("active", m==="flf");
+  $("tabMotion").classList.toggle("active", m==="motion");
+  $("i2vBlock").style.display = m==="i2v" ? "block" : "none";
+  $("flfBlock").style.display = m==="flf" ? "block" : "none";
+  $("motionBlock").style.display = m==="motion" ? "block" : "none";
+  $("elemBlock").style.display = (m==="t2v" && elementsReady) ? "block" : "none";
+  $("negBlock").style.display = "block";
+  // Motion: size/length/quality follow the driving video + its own selects.
+  $("qualBlock").style.display = m==="motion" ? "none" : "block";
+  $("resRow").style.display = m==="motion" ? "none" : "flex";
+  $("styleChips").style.display = m==="motion" ? "none" : "flex";
+  $("prompt").placeholder = m==="motion"
+    ? "Optional — what the character is doing (default: the person is dancing)"
+    : "Describe the shot — subject, action, camera, mood…";
+  if(m!=="motion"){
+    const rk = m==="flf" || m==="t2v" ? "t2v" : m;
+    fillSelect($("resolution"), RES_OPTS[rk]);
+    fillSelect($("duration"), DUR_OPTS[rk]);
+    fillSelect($("quality"), QUAL_OPTS);
+  }
+}
+$("tabT2v").addEventListener("click", ()=>setMode("t2v"));
+$("tabI2v").addEventListener("click", ()=>setMode("i2v"));
+$("tabFlf").addEventListener("click", ()=>setMode("flf"));
+$("tabMotion").addEventListener("click", ()=>setMode("motion"));
+
+// FLF frame uploads
+function wireFlfDrop(dropId, fileId, setter){
+  const drop=$(dropId), file=$(fileId);
+  drop.addEventListener("click", ()=>file.click());
+  drop.addEventListener("dragover", e=>{e.preventDefault(); drop.style.borderColor="var(--accent)";});
+  drop.addEventListener("dragleave", ()=>drop.style.borderColor="");
+  drop.addEventListener("drop", e=>{e.preventDefault(); drop.style.borderColor="";
+    if(e.dataTransfer.files[0]) upFlf(e.dataTransfer.files[0], drop, setter);});
+  file.addEventListener("change", e=>{ if(e.target.files[0]) upFlf(e.target.files[0], drop, setter); });
+}
+async function upFlf(f, drop, setter){
+  const fd=new FormData(); fd.append("file",f); drop.textContent="Uploading…";
+  try{
+    const d=await (await fetch(`${API}/upload`,{method:"POST",body:fd})).json();
+    if(d.token){ setter(d.token); drop.className="drop has"; drop.innerHTML=`<img src="${API}/upload/${d.token}" />`; }
+    else drop.textContent="Upload failed";
+  }catch(e){ drop.textContent="Upload error"; }
+}
+wireFlfDrop("flfDropA","flfFileA", t=>flfFirstToken=t);
+wireFlfDrop("flfDropB","flfFileB", t=>flfLastToken=t);
+
+// ---- generic media drops (elements + motion) with a ✕ clear button ----
+function wireMediaDrop(dropId, fileId, setter, opts={}){
+  const drop=$(dropId), file=$(fileId), empty=drop.innerHTML;
+  function reset(){ setter(null); drop.className="drop"; drop.innerHTML=empty; }
+  async function up(f){
+    const fd=new FormData(); fd.append("file",f); drop.textContent="Uploading…";
+    try{
+      const d=await (await fetch(`${API}/upload`,{method:"POST",body:fd})).json();
+      if(!d.token){ drop.textContent="Upload failed"; return; }
+      setter(d.token); drop.className="drop has";
+      drop.innerHTML = (opts.video
+        ? `<video src="${API}/upload/${d.token}" muted loop autoplay></video>`
+        : `<img src="${API}/upload/${d.token}" />`)
+        + `<button class="clearel" title="Remove">✕</button>`;
+      drop.querySelector(".clearel").addEventListener("click", e=>{e.stopPropagation(); reset();});
+      if(opts.onSet) opts.onSet();
+    }catch(e){ drop.textContent="Upload error"; }
+  }
+  drop.addEventListener("click", e=>{
+    if(e.target.classList.contains("clearel")) return;
+    if(drop.classList.contains("has") && opts.insertTag){
+      const p=$("prompt"); if(!p.value.includes(opts.insertTag))
+        p.value=(p.value.trim()? p.value.trim()+" " : "")+opts.insertTag;
+      toast(opts.insertTag+" inserted into the prompt");
+      return;
+    }
+    file.click();
+  });
+  drop.addEventListener("dragover", e=>{e.preventDefault(); drop.style.borderColor="var(--accent)";});
+  drop.addEventListener("dragleave", ()=>drop.style.borderColor="");
+  drop.addEventListener("drop", e=>{e.preventDefault(); drop.style.borderColor="";
+    if(e.dataTransfer.files[0]) up(e.dataTransfer.files[0]);});
+  file.addEventListener("change", e=>{ if(e.target.files[0]) up(e.target.files[0]); });
+}
+wireMediaDrop("elemDropA","elemFileA", t=>elemTokenA=t, {insertTag:"@image1"});
+wireMediaDrop("elemDropB","elemFileB", t=>elemTokenB=t, {insertTag:"@image2"});
+wireMediaDrop("motDropImg","motFileImg", t=>motImgToken=t);
+wireMediaDrop("motDropVid","motFileVid", t=>motVidToken=t, {video:true});
+$("flfFirstStr").addEventListener("input", e=>$("fsVal").textContent=parseFloat(e.target.value).toFixed(2));
+$("flfLastStr").addEventListener("input", e=>$("lsVal").textContent=parseFloat(e.target.value).toFixed(2));
+
+async function checkStatus(){
+  try{
+    const d = await (await fetch(`${API}/status`)).json();
+    i2vReady = !!d.i2v; t2vReady = !!d.t2v; flfReady = !!d.flf;
+    elementsReady = !!d.elements; motionReady = !!d.motion;
+    const b = $("badge");
+    b.className = "badge ready";
+    b.textContent = `● READY · i2v ${i2vReady?"✓":"✕"} · t2v ${t2vReady?"✓":"✕"} · flf ${flfReady?"✓":"✕"} · elements ${elementsReady?"✓":"✕"} · motion ${motionReady?"✓":"✕"}`;
+    if(!i2vReady && !t2vReady){ b.className="badge off"; b.textContent="● ComfyUI/LTX offline"; }
+    $("tabT2v").classList.toggle("disabled", !t2vReady);
+    $("tabFlf").classList.toggle("disabled", !flfReady);
+    $("tabMotion").classList.toggle("disabled", !motionReady);
+    $("elemBlock").style.display = (mode==="t2v" && elementsReady) ? "block" : "none";
+  }catch(e){ $("badge").textContent="● backend offline"; $("badge").className="badge off"; }
+}
+
+// ---- upload ----
+$("drop").addEventListener("click", ()=> $("file").click());
+$("drop").addEventListener("dragover", e=>{e.preventDefault(); $("drop").style.borderColor="var(--accent)";});
+$("drop").addEventListener("dragleave", ()=> $("drop").style.borderColor="");
+$("drop").addEventListener("drop", e=>{e.preventDefault(); $("drop").style.borderColor="";
+  if(e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);});
+$("file").addEventListener("change", e=>{ if(e.target.files[0]) uploadFile(e.target.files[0]); });
+async function uploadFile(file){
+  const fd=new FormData(); fd.append("file",file); $("drop").textContent="Uploading…";
+  try{
+    const d = await (await fetch(`${API}/upload`,{method:"POST",body:fd})).json();
+    if(d.token){ imageToken=d.token; $("drop").className="drop has";
+      $("drop").innerHTML=`<img src="${API}/upload/${d.token}" alt="start frame" />`; }
+    else { $("drop").textContent="Upload failed: "+(d.error||"?"); }
+  }catch(e){ $("drop").textContent="Upload error"; }
+}
+
+// ---- seed helpers ----
+$("seedRand").addEventListener("click", ()=>{ $("seed").value = Math.floor(Math.random()*1e15); });
+$("seedReuse").addEventListener("click", ()=>{ if(lastSeed!=null){$("seed").value=lastSeed; toast("Seed "+lastSeed+" loaded");} });
+
+// ---- surprise ----
+$("surprise").addEventListener("click", async ()=>{
+  const d = await (await fetch(`${API}/surprise`)).json(); $("prompt").value = d.prompt;
+});
+
+// ---- generate ----
+async function generate(){
+  const p = composedPrompt();
+  if(mode==="i2v" && !imageToken){ toast("Add a start image, or switch to Text→Video.", true); return; }
+  if(mode==="t2v" && !p){ toast("Enter a prompt for text-to-video.", true); return; }
+  if(mode==="flf" && (!flfFirstToken || !flfLastToken)){ toast("Add both a start and end frame.", true); return; }
+  if(mode==="motion" && (!motImgToken || !motVidToken)){ toast("Add a character image and a driving video.", true); return; }
+  $("go").disabled=true; $("go").textContent="Queuing…";
+  try{
+    let url, body;
+    if(mode==="motion"){
+      url = `${API}/motion`;
+      body = { prompt:p, negative:$("negative").value, image_token:motImgToken,
+        video_token:motVidToken, seed:$("seed").value.trim()||"random",
+        resolution:$("motRes").value, frame_cap:$("motCap").value };
+    } else if(mode==="t2v" && (elemTokenA||elemTokenB)){
+      url = `${API}/elements`;
+      body = { prompt:p, negative:$("negative").value,
+        element_tokens:[elemTokenA,elemTokenB].filter(Boolean),
+        seed:$("seed").value.trim()||"random", resolution:$("resolution").value,
+        duration:$("duration").value, quality:$("quality").value };
+    } else if(mode==="flf"){
+      url = `${API}/flf`;
+      body = { prompt:p, negative:$("negative").value, first_token:flfFirstToken, last_token:flfLastToken,
+        first_strength:$("flfFirstStr").value, last_strength:$("flfLastStr").value,
+        seed:$("seed").value.trim()||"random", resolution:$("resolution").value,
+        duration:$("duration").value, quality:$("quality").value };
+    } else {
+      url = `${API}/generate`;
+      body = { mode, prompt:p, negative:$("negative").value, image_token:imageToken,
+        seed:$("seed").value.trim()||"random", fixed_camera:$("fixed").checked,
+        resolution:$("resolution").value, duration:$("duration").value,
+        quality:$("quality").value, fit:$("fitBox").checked };
+    }
+    const d = await (await fetch(url,{method:"POST",
+      headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+    if(d.error){ toast(d.error, true); }
+    else { activeTaskId=d.id; setResult({status:"QUEUED",created:Date.now()/1000}); toast("Queued — rendering…"); }
+  }catch(e){ toast("Generate failed: "+e, true); }
+  $("go").disabled=false; $("go").textContent="Generate video"; refreshTasks();
+}
+$("go").addEventListener("click", generate);
+document.addEventListener("keydown", e=>{ if((e.metaKey||e.ctrlKey)&&e.key==="Enter") generate(); });
+
+// ---- result ----
+function fmtElapsed(s){ s=Math.max(0,Math.floor(s)); return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`; }
+function setResult(t){
+  const s=$("resultStatus"); s.textContent=t.status; s.className="status-pill "+t.status;
+  const info=$("resultInfo"), dl=$("resultDownload"), rv=$("resultVideo");
+  if(t.status==="SUCCEEDED" && t.video_url){
+    rv.innerHTML=`<video src="${t.video_url}" controls autoplay loop muted></video>`;
+    if(t.seed!=null) lastSeed=t.seed;
+    info.textContent=(t.params&&t.params.mode?t.params.mode.toUpperCase()+" · ":"")+(t.seed!=null?`seed ${t.seed}`:"");
+    dl.href=t.video_url; dl.style.display="inline";
+  } else if(t.status==="FAILED"){
+    rv.textContent="Render failed — "+(t.error||"see task"); info.textContent=""; dl.style.display="none";
+  } else {
+    const el = t.created ? " · "+fmtElapsed(Date.now()/1000 - t.created) : "";
+    const md = t.params && t.params.mode;
+    const hint = md==="elements" ? "Flux2 compose + LTX — ~10–15 min"
+               : md==="motion"   ? "Wan 2.2 Animate — heavy, 10+ min (first run downloads pose/SAM models)"
+               : "LTX ~5–7 min on 16GB";
+    const ph = t.phase ? `<br>${t.phase}` : "";
+    rv.innerHTML=`<div><span class="spinner"></span><br>Rendering…${el}${ph}<br><span class="hint">${hint}</span></div>`;
+    info.textContent=""; dl.style.display="none";
+  }
+}
+
+// ---- tasks + gallery polling ----
+async function refreshTasks(){
+  try{
+    const d = await (await fetch(`${API}/tasks`)).json();
+    const list = d.tasks || [];
+    // tasks
+    const el=$("taskList");
+    el.innerHTML = list.length ? list.map(t=>{
+      const spin=(t.status==="RUNNING"||t.status==="QUEUED")?`<span class="spinner"></span>`:"";
+      const md = t.params&&t.params.mode ? t.params.mode.toUpperCase() : "";
+      return `<div class="task" data-id="${t.id}"><span class="status-pill ${t.status}">${t.status}</span>
+        <div class="txt"><div class="p">${(t.prompt||"(no prompt)").replace(/</g,"&lt;")}</div>
+        <div class="s">${md} · ${new Date(t.created*1000).toLocaleTimeString()} ${spin}</div></div></div>`;
+    }).join("") : `<div class="hint">No tasks yet.</div>`;
+    el.querySelectorAll(".task").forEach(n=>n.addEventListener("click",()=>{
+      const t=list.find(x=>x.id===n.dataset.id); activeTaskId=t.id; setResult(t); }));
+    // a task just finished -> refresh the persistent history
+    const doneIds = list.filter(t=>t.status==="SUCCEEDED").map(t=>t.id).join(",");
+    if(doneIds !== refreshTasks._doneIds){ refreshTasks._doneIds = doneIds; loadHistory(); }
+    // keep active result live
+    if(activeTaskId){ const cur=list.find(x=>x.id===activeTaskId); if(cur) setResult(cur); }
+  }catch(e){}
+}
+
+// ---- persistent history, grouped by day (Higgsfield-style) ----
+let _histItems = [];
+function fmtDate(ts){
+  return new Date(ts*1000).toLocaleDateString(undefined,
+    {year:"numeric", month:"long", day:"numeric"});
+}
+async function loadHistory(){
+  try{
+    const d = await (await fetch(`${API}/history`)).json();
+    _histItems = d.items || [];
+    const box = $("historyBox");
+    if(!_histItems.length){
+      box.innerHTML = `<div class="hint">Finished clips appear here, grouped by day — they survive restarts.</div>`;
+      return;
+    }
+    const groups = [];
+    for(const it of _histItems){
+      const day = fmtDate(it.ts);
+      if(!groups.length || groups[groups.length-1].day !== day)
+        groups.push({day, items:[]});
+      groups[groups.length-1].items.push(it);
+    }
+    box.innerHTML = groups.map(g=>`<div class="datehdr">${g.day}</div>
+      <div class="gallery">${g.items.map(it=>`
+        <div class="gcard" data-hid="${it.id}" title="${(it.prompt||"").replace(/"/g,"&quot;")}">
+          <video src="${it.video_url}" muted loop preload="metadata"
+            onmouseover="this.play()" onmouseout="this.pause()"></video>
+          <span class="tag">${it.mode||""}</span>
+          <a class="dl" href="${it.video_url}" download onclick="event.stopPropagation()">⬇</a>
+        </div>`).join("")}</div>`).join("");
+    box.querySelectorAll(".gcard").forEach(n=>n.addEventListener("click",()=>{
+      const it=_histItems.find(x=>x.id===n.dataset.hid);
+      if(it){ activeTaskId=null;
+        setResult({status:"SUCCEEDED", video_url:it.video_url, seed:it.seed,
+                   params:{mode:it.mode}});
+        window.scrollTo({top:0,behavior:"smooth"}); }
+    }));
+  }catch(e){}
+}
+
+// ---- multi-shot reel ----
+let reelTaskId = null;
+function addShot(prompt=""){
+  const row = document.createElement("div");
+  row.className = "shot-row";
+  row.style = "display:flex;gap:8px;align-items:center;margin-bottom:8px";
+  row.innerHTML = `
+    <input class="shot-prompt" placeholder="Shot ${$("shotList").children.length+1} — describe the clip…" value="${prompt.replace(/"/g,'&quot;')}" style="flex:1" />
+    <select class="shot-dur" style="width:110px">
+      <option value="3s">3 sec</option><option value="5s">5 sec</option><option value="8s">8 sec</option>
+    </select>
+    <button class="icon-btn shot-del" title="Remove">✕</button>`;
+  row.querySelector(".shot-del").addEventListener("click", ()=>{ row.remove(); renumberShots(); });
+  $("shotList").appendChild(row);
+}
+function renumberShots(){
+  [...$("shotList").querySelectorAll(".shot-row")].forEach((r,i)=>{
+    const p=r.querySelector(".shot-prompt"); if(!p.value) p.placeholder=`Shot ${i+1} — describe the clip…`;
+  });
+}
+$("addShot").addEventListener("click", ()=>addShot());
+
+async function buildReel(){
+  const rows = [...$("shotList").querySelectorAll(".shot-row")];
+  const shots = rows.map(r=>({ mode:"t2v",
+    prompt: r.querySelector(".shot-prompt").value.trim(),
+    duration: r.querySelector(".shot-dur").value,
+    resolution: $("reelRes").value, quality: $("reelQual").value }))
+    .filter(s=>s.prompt);
+  if(shots.length < 2){ toast("Add at least 2 shots with prompts.", true); return; }
+  $("buildReel").disabled = true; $("buildReel").textContent = "Building…";
+  try{
+    const d = await (await fetch(`${API}/reel`, {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ shots, transition:$("reelTrans").value })})).json();
+    if(d.error){ toast(d.error, true); }
+    else { reelTaskId = d.id; toast(`Reel queued — ${shots.length} shots`); pollReel(); }
+  }catch(e){ toast("Reel failed: "+e, true); }
+  $("buildReel").disabled = false; $("buildReel").textContent = "🎞 Build Reel";
+}
+$("buildReel").addEventListener("click", buildReel);
+
+async function pollReel(){
+  if(!reelTaskId) return;
+  try{
+    const t = await (await fetch(`${API}/task/${reelTaskId}`)).json();
+    const s = $("reelStatus");
+    if(t.status === "SUCCEEDED" && t.video_url){
+      s.innerHTML = `<span class="status-pill SUCCEEDED">DONE</span> reel ready`;
+      $("reelResult").innerHTML = `<div class="result-video" style="margin-top:10px;aspect-ratio:auto;max-height:420px">
+        <video src="${t.video_url}" controls autoplay loop style="max-height:420px"></video></div>
+        <a href="${t.video_url}" download style="font-size:12px">⬇ Download reel</a>`;
+      reelTaskId = null; refreshTasks(); return;
+    } else if(t.status === "FAILED"){
+      s.innerHTML = `<span class="status-pill FAILED">FAILED</span> ${t.error||""}`; reelTaskId=null; return;
+    } else {
+      const prog = t.shots_total ? ` (${t.shots_done||0}/${t.shots_total})` : "";
+      s.innerHTML = `<span class="spinner"></span> ${t.phase||"working"}${prog} — this takes a few min per shot`;
+    }
+  }catch(e){}
+  setTimeout(pollReel, 3000);
+}
+
+fillSelect($("reelRes"), TV_RES); fillSelect($("reelQual"), QUAL_OPTS);
+addShot(); addShot();
+
+setMode("i2v");
+checkStatus(); refreshTasks(); loadHistory();
+setInterval(refreshTasks, 2000);
+setInterval(checkStatus, 12000);
+setInterval(loadHistory, 10000);
+</script>
+</body>
+</html>

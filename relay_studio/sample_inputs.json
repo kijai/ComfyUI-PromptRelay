@@ -1,0 +1,12 @@
+{
+  "request": "Turn my cat into a talking influencer. Make a fun jazzy intro, the cat talks about how weird humans are, and a comedic cup-falling moment.",
+  "cat_name": "Whiskers",
+  "show_title": "The Cat Chat Show",
+  "episode": "Why Humans Are So Weird",
+  "cat_photo_url": "",
+  "voice_name": "Anthony",
+  "voice_description": "Decent Young Man - Magnetic, lazy, playful wit",
+  "voice_language": "EN_British",
+  "lipsync_service": "dlai2v_pro",
+  "requested_output": "talking influencer video"
+}

@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Storyboard Workspace</title>
+<style>
+  :root{
+    --bg:#121212; --panel:#1e1e1e; --panel2:#2a2a2a; --line:#2d2d2d; --line2:#333;
+    --text:#fff; --muted:#aaa; --dim:#666; --faint:#888;
+    --accent:#0070f3; --err:#e05c5c; --ok:#4cc38a;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 "Segoe UI",system-ui,sans-serif;overflow:hidden}
+  #app{display:flex;height:100vh}
+  h2{font-size:20px;margin:0}
+  h3{font-size:15px;margin:0 0 14px}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px}
+  textarea,input[type=text],input[type=number],select{
+    width:100%;background:var(--panel);color:var(--text);border:1px solid var(--line2);
+    border-radius:4px;padding:8px 10px;font:inherit;font-size:13px}
+  textarea:focus,input:focus,select:focus{outline:1px solid var(--accent)}
+  button{cursor:pointer;border:none;border-radius:4px;font:inherit;font-weight:600}
+  .btn-primary{width:100%;padding:10px;background:var(--accent);color:#fff;font-size:14px;margin-top:12px}
+  .btn-primary:disabled{opacity:.5;cursor:default}
+  .btn-ghost{background:var(--panel);color:var(--text);border:1px solid var(--line2);padding:7px 10px;font-size:12px}
+  .btn-ghost:hover{border-color:var(--accent)}
+
+  /* ============ LEFT: Director Control Panel ============ */
+  #left{width:300px;flex:none;border-right:1px solid var(--line);padding:20px;overflow-y:auto}
+  #script{height:150px;resize:vertical;font-family:Consolas,monospace}
+  #conn{font-size:11px;color:var(--dim);margin-top:14px}
+  #conn.ok::before{content:"● ";color:var(--ok)}
+  #conn.bad::before{content:"● ";color:var(--err)}
+  #status{font-size:12px;color:var(--muted);margin-top:8px;white-space:pre-line;min-height:16px}
+  details{border:1px solid var(--line2);border-radius:4px;padding:8px 10px;margin-top:14px}
+  details summary{cursor:pointer;font-size:12px;color:var(--muted)}
+  .row{display:flex;gap:8px}
+  .row>div{flex:1}
+  .exports{display:flex;gap:8px;margin-top:10px}
+  .exports button{flex:1}
+
+  /* ============ CENTER: stage + timeline track ============ */
+  #center{flex:1;display:flex;flex-direction:column;min-width:0;padding:20px 20px 10px}
+  #centerHead{display:flex;align-items:baseline;gap:14px}
+  #boardTitle{width:auto;min-width:240px;background:transparent;border:1px solid transparent;font-size:14px;color:var(--muted);padding:4px 8px}
+  #boardTitle:hover,#boardTitle:focus{border-color:var(--line2);background:var(--panel)}
+  #stage{flex:1;min-height:0;margin:14px 0 6px;background:var(--panel);border:1px solid var(--line2);border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  #stageImg{max-width:100%;max-height:100%;display:none;cursor:zoom-in}
+  #stageCap{position:absolute;left:0;right:0;bottom:0;padding:10px 16px;font-size:13px;color:var(--text);background:linear-gradient(transparent,rgba(0,0,0,.75));display:none}
+  #stageEmpty{color:var(--dim);font-size:14px;text-align:center;padding:0 40px}
+  #stageEmpty code{background:var(--panel2);padding:2px 6px;border-radius:4px}
+
+  /* ---- the track ---- */
+  #trackWrap{flex:none}
+  #ruler{height:10px;margin:0 2px 8px;border-bottom:1px solid var(--line2);
+         background:repeating-linear-gradient(90deg,var(--line2) 0 2px,transparent 2px 30px);opacity:.7}
+  #track{display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;padding:4px 2px 12px;min-height:212px;align-items:flex-start;scrollbar-color:var(--line2) transparent}
+  .shot{width:232px;flex:none;background:var(--panel);border-radius:8px;border:1px solid var(--line2);overflow:hidden;cursor:grab;user-select:none;touch-action:none}
+  .shot:active{cursor:grabbing}
+  .shot.sel{border-color:var(--accent)}
+  .shot.dragging{position:fixed;z-index:100;margin:0;pointer-events:none;cursor:grabbing;
+                 box-shadow:0 14px 34px rgba(0,0,0,.65);transform:rotate(1.6deg) scale(1.04)}
+  .ph{flex:none;border:2px dashed var(--accent);border-radius:8px;background:rgba(0,112,243,.08)}
+  .frame{position:relative;width:100%;aspect-ratio:16/9;background:var(--panel2);display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:11px}
+  .frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+  .frame .overlay{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(18,18,18,.78);font-size:12px;color:var(--muted)}
+  .bar{width:65%;height:3px;border-radius:2px;background:var(--line2);overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+  .shot .body{padding:8px 10px 10px}
+  .shot .head{display:flex;align-items:center;gap:6px;margin:0 0 6px}
+  .shot .grip{color:var(--dim);font-size:13px;letter-spacing:1px;cursor:grab}
+  .shot .num{font-size:12px;color:var(--muted)}
+  .shot .seed{font-size:10px;color:var(--dim);font-family:Consolas,monospace;margin-left:auto}
+  .shot .head button{background:transparent;border:1px solid var(--line2);color:var(--muted);font-size:11px;padding:1px 6px;border-radius:3px}
+  .shot .head button:hover{border-color:var(--accent);color:var(--text)}
+  .cap{width:100%;background:transparent;border:none;color:var(--text);font-size:12.5px;outline:none;min-height:18px;max-height:54px;overflow-y:auto;cursor:text}
+  .cap:focus{background:var(--panel2);border-radius:3px}
+  .shot.err .frame{outline:1px solid var(--err)}
+
+  /* ============ RIGHT: Studio Assets ============ */
+  #right{width:250px;flex:none;border-left:1px solid var(--line);padding:20px;overflow-y:auto}
+  #dropZone{border:2px dashed #444;height:120px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:12px;color:var(--faint);text-align:center;cursor:pointer;position:relative;overflow:hidden}
+  #dropZone.over{border-color:var(--accent);color:var(--accent)}
+  #dropZone img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  #refClear{display:none;width:100%;margin-top:8px}
+  #influenceVal{color:var(--accent);font-family:Consolas,monospace}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .check{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:var(--text)}
+  .check input{width:auto;accent-color:var(--accent)}
+  #continuity{margin-top:18px;font-size:12px;color:var(--dim)}
+  #continuity.on{color:var(--accent)}
+  .hint{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.5}
+
+  /* ============ lightbox & print ============ */
+  #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:200;cursor:zoom-out}
+  #lightbox img{max-width:94vw;max-height:92vh}
+  @media print{
+    body{overflow:visible;background:#fff;color:#000}
+    #left,#right,#stage,#ruler,.shot .head button,.shot .grip,#conn{display:none!important}
+    #app,#center{display:block;height:auto;overflow:visible;padding:0}
+    h2,#boardTitle{color:#000}
+    #boardTitle{border:none;background:none}
+    #track{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;overflow:visible}
+    .shot{width:auto;border:1px solid #999;border-radius:0;break-inside:avoid;background:#fff}
+    .frame{background:#eee}
+    .cap,.shot .num{color:#000}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- LEFT SIDEBAR: Director Control Panel -->
+  <div id="left">
+    <h3>Director Control Panel</h3>
+    <textarea id="script" placeholder="Enter your full story script here...
+
+Scene 1:
+Wide shot of a character looking at a neon city
+Scene 2:
+Close up of the character's eyes reflecting the lights
+
+(Scene N: headers or |-separated — same syntax as the PromptRelay Smart node)"></textarea>
+    <div class="exports" style="margin-top:8px">
+      <button class="btn-ghost" id="loadFileBtn" title="Load a raw .txt script file">📄 Load script</button>
+      <button class="btn-ghost" id="isolateBtn" title="Isolate sentences featuring the locked character and turn them into scenes">✂ Character shots</button>
+    </div>
+    <input type="file" id="scriptFile" accept=".txt,.md,.fountain,text/plain" style="display:none">
+
+    <label for="stylePreset">Style preset</label>
+    <select id="stylePreset"></select>
+    <label for="style">Visual style (editable — applied to every shot)</label>
+    <input type="text" id="style" value="cinematic film still, hyper realistic, dramatic lighting, shallow depth of field, 35mm">
+
+    <div class="row">
+      <div>
+        <label for="size">Frame size</label>
+        <select id="size">
+          <option value="1280x720">16:9 — 1280×720</option>
+          <option value="1024x576" selected>16:9 — 1024×576</option>
+          <option value="768x432">16:9 — 768×432 (fast)</option>
+          <option value="1024x1024">1:1 — 1024×1024</option>
+          <option value="720x1280">9:16 — 720×1280</option>
+        </select>
+      </div>
+      <div>
+        <label for="steps">Steps</label>
+        <input id="steps" type="number" min="1" max="30" value="8">
+      </div>
+    </div>
+
+    <label for="seed">Seed (blank = random)</label>
+    <input id="seed" type="text" placeholder="random">
+
+    <details>
+      <summary>Model settings</summary>
+      <label>Diffusion model</label><select id="unet"></select>
+      <label>Weight dtype</label>
+      <select id="dtype"><option>default</option><option selected>fp8_e5m2</option><option>fp8_e4m3fn</option></select>
+      <label>Text encoder</label><select id="clip"></select>
+      <label>VAE</label><select id="vae"></select>
+      <label>Style LoRA</label><select id="lora"><option value="none">none</option></select>
+      <label>LoRA strength</label><input id="loraStrength" type="number" step="0.05" min="0" max="2" value="1">
+    </details>
+
+    <button id="generate" class="btn-primary">Generate Video Storyboard</button>
+    <div class="exports">
+      <button class="btn-ghost" id="printBtn">🖨 Print / PDF</button>
+      <button class="btn-ghost" id="pngBtn">⬇ Sheet PNG</button>
+      <button class="btn-ghost" id="clearBtn">✕</button>
+    </div>
+    <div id="status"></div>
+    <div id="conn">connecting…</div>
+  </div>
+
+  <!-- CENTRAL AREA: preview stage + interactive timeline track -->
+  <div id="center">
+    <div id="centerHead">
+      <h2>Visual Timeline</h2>
+      <input id="boardTitle" value="Untitled storyboard" spellcheck="false">
+    </div>
+    <div id="stage">
+      <div id="stageEmpty">Write a script in the Director Control Panel and hit <code>Generate</code>.<br><br>
+        Each <code>Scene N:</code> becomes a shot on the timeline below — drag shots left or right to reorder the sequence.</div>
+      <img id="stageImg" alt="">
+      <div id="stageCap"></div>
+    </div>
+    <div id="trackWrap">
+      <div id="ruler"></div>
+      <div id="track"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR: Character Consistency & Seed Lock -->
+  <div id="right">
+    <h3>Studio Assets</h3>
+
+    <div id="dropZone" title="Drop an image, or click to browse">
+      <span id="dropHint">Drop Target Character /<br>Reference Image Here</span>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" style="display:none">
+    <button class="btn-ghost" id="refClear">✕ Remove reference</button>
+
+    <label for="influence">Reference influence — <span id="influenceVal">0%</span></label>
+    <input type="range" id="influence" min="0" max="80" value="0">
+    <div class="hint">Renders every shot over the reference image (img2img). 0% ignores it; high values keep composition &amp; palette but reduce shot variety.</div>
+
+    <label for="character">Recurring character description</label>
+    <textarea id="character" style="height:84px;resize:vertical" placeholder="e.g. a woman in a yellow raincoat, short black hair, mid-30s"></textarea>
+    <div class="hint">Appended to every shot prompt so the same character appears in each frame.</div>
+
+    <label for="aliases">Character name / aliases (for the script parser)</label>
+    <input type="text" id="aliases" placeholder="e.g. Maya, the astronaut">
+    <div class="hint">Used by ✂ Character shots to find this character's sentences in a raw script. Comma-separated; falls back to description keywords.</div>
+
+    <div class="check">
+      <input type="checkbox" id="seedLock" checked>
+      <label for="seedLock" style="margin:0">Seed lock across shots</label>
+    </div>
+    <div class="hint">One seed for the whole board — more consistent look between shots.</div>
+
+    <div id="continuity">○ Continuity engine idle</div>
+  </div>
+
+</div>
+<div id="lightbox" onclick="this.style.display='none'"><img alt=""></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const COMFY_URL = "http://127.0.0.1:8188/extensions/ComfyUI-PromptRelay/storyboard.html";
+// Opened from disk or an editor preview panel: relative API calls have no server.
+const SERVED_BY_COMFY = location.protocol === "http:" || location.protocol === "https:";
+if(!SERVED_BY_COMFY){
+  document.addEventListener("DOMContentLoaded", () => {
+    const b = document.createElement("div");
+    b.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:300;background:#0070f3;color:#fff;" +
+      "padding:10px 16px;font-size:13px;text-align:center";
+    b.innerHTML = '⚠ This page is being viewed outside ComfyUI, so generation is disabled. ' +
+      'Open it through the ComfyUI server instead: <a href="' + COMFY_URL +
+      '" style="color:#fff;font-weight:700">' + COMFY_URL + '</a>';
+    document.body.appendChild(b);
+  });
+}
+const clientId = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
+let shots = [];              // ordered: index = position on the track
+const byPrompt = new Map();  // prompt_id -> shot
+let refImage = null;         // {name, subfolder, type} from /upload/image
+let selected = null;
+
+const sizeWH = () => $("size").value.split("x").map(Number);
+const stepsVal = () => Math.max(1, parseInt($("steps").value) || 8);
+const refName = () => refImage ? (refImage.subfolder ? refImage.subfolder + "/" : "") + refImage.name : null;
+
+/* ---------------- script parsing (PromptRelay smart syntax) ---------------- */
+function parseScript(text){
+  text = (text || "").trim();
+  if(!text) return [];
+  const headerRe = /^[^\S\n]*[A-Za-z][A-Za-z ]*?\s+\d+(?:\s*-\s*\d+)?\s*:\s*$/;
+  const lines = text.split(/\r?\n/);
+  if(lines.some(l => headerRe.test(l))){
+    const scenes = []; let cur = null;
+    for(const l of lines){
+      if(headerRe.test(l)){ if(cur && cur.trim()) scenes.push(cur.trim()); cur = ""; }
+      else if(cur !== null) cur += (cur ? "\n" : "") + l;
+      else if(l.trim()) cur = l;
+    }
+    if(cur && cur.trim()) scenes.push(cur.trim());
+    return scenes;
+  }
+  return text.split("|")
+    .map(s => s.replace(/\[\s*\d+(?:\s*-\s*\d+)?\s*\]/g, "").trim())
+    .filter(Boolean);
+}
+
+/* ---------------- backend compile (storyboard_engine.py), local fallback ---------------- */
+function characterBody(){
+  return {
+    reference_image: refName(),
+    character_description: $("character").value.trim(),
+    weight_modifier: parseInt($("influence").value) / 100,
+    aliases: $("aliases").value.split(",").map(a => a.trim()).filter(Boolean)
+  };
+}
+async function compileViaBackend(s){
+  const [w, h] = sizeWH();
+  const res = await fetch("/promptrelay/storyboard/compile", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      scenes: [{prompt: s.text, frame_number: s.idx + 1, seed: s.seed}],
+      style_text: $("style").value.trim(),
+      character: characterBody(),
+      width: w, height: h, steps: stepsVal(),
+      models: {
+        unet: $("unet").value, clip: $("clip").value, vae: $("vae").value,
+        dtype: $("dtype").value,
+        lora: $("lora").value === "none" ? null : $("lora").value,
+        lora_strength: parseFloat($("loraStrength").value) || 1
+      },
+      queue: true, client_id: clientId
+    })
+  });
+  if(!res.ok) throw new Error("backend HTTP " + res.status);
+  const shot = (await res.json()).shots[0];
+  if(!shot?.prompt_id) throw new Error(shot?.error ? JSON.stringify(shot.error) : "no prompt_id");
+  return shot;
+}
+/* local fallback mirrors the backend graph */
+function buildWorkflowLocal(promptText, seed){
+  const [w, h] = sizeWH();
+  const influence = parseInt($("influence").value) / 100;
+  const wf = {
+    "1": {class_type:"UNETLoader", inputs:{unet_name:$("unet").value, weight_dtype:$("dtype").value}},
+    "2": {class_type:"CLIPLoader", inputs:{clip_name:$("clip").value, type:"lumina2", device:"default"}},
+    "3": {class_type:"VAELoader",  inputs:{vae_name:$("vae").value}},
+    "4": {class_type:"CLIPTextEncode", inputs:{clip:["2",0], text:promptText}},
+    "5": {class_type:"ConditioningZeroOut", inputs:{conditioning:["4",0]}},
+    "6": {class_type:"EmptySD3LatentImage", inputs:{width:w, height:h, batch_size:1}},
+    "8": {class_type:"KSampler", inputs:{
+            model:["1",0], positive:["4",0], negative:["5",0], latent_image:["6",0],
+            seed:seed, steps:stepsVal(), cfg:1,
+            sampler_name:"res_multistep", scheduler:"simple", denoise:1}},
+    "9": {class_type:"VAEDecode", inputs:{samples:["8",0], vae:["3",0]}},
+    "10":{class_type:"SaveImage", inputs:{images:["9",0], filename_prefix:"storyboard/shot"}}
+  };
+  if($("lora").value !== "none"){
+    wf["11"] = {class_type:"LoraLoaderModelOnly", inputs:{
+      model:["1",0], lora_name:$("lora").value,
+      strength_model: parseFloat($("loraStrength").value) || 1}};
+    wf["8"].inputs.model = ["11",0];
+  }
+  if(refImage && influence > 0){
+    wf["12"] = {class_type:"LoadImage", inputs:{image:refName()}};
+    wf["13"] = {class_type:"ImageScale", inputs:{image:["12",0], upscale_method:"lanczos", width:w, height:h, crop:"center"}};
+    wf["14"] = {class_type:"VAEEncode", inputs:{pixels:["13",0], vae:["3",0]}};
+    wf["8"].inputs.latent_image = ["14",0];
+    wf["8"].inputs.denoise = Math.round((1 - influence) * 100) / 100;
+  }
+  return wf;
+}
+function fullPrompt(sceneText){
+  const parts = [$("style").value.trim(), sceneText];
+  const desc = $("character").value.trim();
+  if(desc) parts.push("same recurring character in every shot: " + desc);
+  return parts.filter(Boolean).join(". ");
+}
+
+/* ---------------- shot cards on the track ---------------- */
+function addShot(text, seed){
+  const idx = shots.length;
+  const el = document.createElement("div");
+  el.className = "shot";
+  const [w, h] = sizeWH();
+  el.innerHTML = `
+    <div class="frame" style="aspect-ratio:${w}/${h}">
+      <span class="pht">[ AI Generation Viewport ]</span>
+      <div class="overlay"><span class="msg">queued…</span><div class="bar"><i></i></div></div>
+    </div>
+    <div class="body">
+      <div class="head">
+        <span class="grip" title="Drag to reorder">⠿</span>
+        <span class="num">Shot ${idx+1}</span>
+        <button class="reroll" title="Regenerate this shot with a new seed">↻</button>
+        <button class="dl" title="Download frame">⬇</button>
+        <span class="seed"></span>
+      </div>
+      <div class="cap" contenteditable="true" spellcheck="false"></div>
+    </div>`;
+  el.querySelector(".cap").textContent = text;
+  const s = {el, text, seed, promptId:null, img:null, done:false, error:null, idx};
+  el.querySelector(".reroll").onclick = () => queueShot(s, true);
+  el.querySelector(".dl").onclick = () => { if(s.img) window.open(viewUrl(s.img), "_blank"); };
+  initDrag(s);
+  $("track").appendChild(el);
+  shots.push(s);
+  return s;
+}
+const viewUrl = im => `/view?filename=${encodeURIComponent(im.filename||im.name)}&subfolder=${encodeURIComponent(im.subfolder||"")}&type=${im.type||"output"}&t=${Date.now()}`;
+
+function select(s){
+  selected = s;
+  shots.forEach(o => o.el.classList.toggle("sel", o === s));
+  if(s?.img){
+    $("stageImg").src = viewUrl(s.img);
+    $("stageImg").style.display = "block";
+    $("stageCap").style.display = "block";
+    $("stageCap").textContent = `Shot ${s.idx+1} — ${s.el.querySelector(".cap").textContent}`;
+    $("stageEmpty").style.display = "none";
+  }
+}
+$("stageImg").onclick = () => {
+  $("lightbox").querySelector("img").src = $("stageImg").src;
+  $("lightbox").style.display = "flex";
+};
+
+function setOverlay(s, msg, frac){
+  const ov = s.el.querySelector(".overlay");
+  ov.style.display = "flex";
+  ov.querySelector(".msg").textContent = msg;
+  ov.querySelector(".bar i").style.width = ((frac||0)*100) + "%";
+}
+function finishShot(s, im){
+  s.img = im; s.done = true;
+  const frame = s.el.querySelector(".frame");
+  frame.querySelector(".pht")?.remove();
+  frame.querySelector(".overlay").style.display = "none";
+  let img = frame.querySelector("img");
+  if(!img){ img = document.createElement("img"); frame.prepend(img); }
+  img.src = viewUrl(im);
+  s.el.querySelector(".seed").textContent = "seed " + s.seed;
+  if(!selected || selected === s) select(s);
+  updateStatus();
+}
+function failShot(s, msg){
+  s.error = msg; s.done = true;
+  s.el.classList.add("err");
+  setOverlay(s, "error — see status", 0);
+  updateStatus(msg);
+}
+function updateStatus(extra){
+  const done = shots.filter(s => s.done && !s.error).length;
+  const pend = shots.filter(s => !s.done).length;
+  $("status").textContent =
+    (shots.length ? `${done}/${shots.length} shots done` + (pend ? `, ${pend} in queue` : "") : "") +
+    (extra ? "\n" + extra : "");
+}
+
+/* ---------------- drag & drop reordering on the track ---------------- */
+let drag = null;
+function initDrag(s){
+  const el = s.el;
+  el.addEventListener("pointerdown", e => {
+    if(e.button !== 0) return;
+    if(e.target.closest("button, .cap, input, select, textarea")) return;
+    drag = {s, el, startX:e.clientX, startY:e.clientY, started:false};
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener("pointermove", e => {
+    if(!drag || drag.el !== el) return;
+    if(!drag.started){
+      if(Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < 6) return;
+      startDrag(e);
+    }
+    moveDrag(e);
+  });
+  el.addEventListener("pointerup", e => endDrag(e, false));
+  el.addEventListener("pointercancel", e => endDrag(e, true));
+}
+function startDrag(e){
+  const el = drag.el, r = el.getBoundingClientRect();
+  drag.started = true;
+  drag.dx = e.clientX - r.left;
+  drag.dy = e.clientY - r.top;
+  const ph = document.createElement("div");
+  ph.className = "ph";
+  ph.style.width = r.width + "px";
+  ph.style.height = r.height + "px";
+  el.parentNode.insertBefore(ph, el);
+  drag.ph = ph;
+  el.classList.add("dragging");
+  el.style.width = r.width + "px";
+  el.style.left = r.left + "px";
+  el.style.top = r.top + "px";
+}
+function moveDrag(e){
+  const el = drag.el, track = $("track");
+  el.style.left = (e.clientX - drag.dx) + "px";
+  el.style.top = (e.clientY - drag.dy) + "px";
+  // auto-scroll near the track edges
+  const tr = track.getBoundingClientRect();
+  if(e.clientX > tr.right - 60) track.scrollLeft += 14;
+  else if(e.clientX < tr.left + 60) track.scrollLeft -= 14;
+  // find insertion point: first card whose horizontal midpoint is right of the pointer
+  const cards = [...track.children].filter(c => c !== el && c !== drag.ph);
+  let before = null;
+  for(const c of cards){
+    const cr = c.getBoundingClientRect();
+    if(e.clientX < cr.left + cr.width / 2){ before = c; break; }
+  }
+  if(before) track.insertBefore(drag.ph, before);
+  else track.appendChild(drag.ph);
+}
+function endDrag(e, cancelled){
+  if(!drag) return;
+  const {el, s, ph, started} = drag;
+  drag = null;
+  if(!started){            // plain click — select the shot
+    select(s);
+    return;
+  }
+  el.classList.remove("dragging");
+  el.style.width = el.style.left = el.style.top = "";
+  if(ph){
+    if(!cancelled) ph.parentNode.insertBefore(el, ph);
+    ph.remove();
+  }
+  reorderFromDOM();
+  select(s);
+}
+function reorderFromDOM(){
+  const order = [...$("track").children].filter(c => c.classList.contains("shot"));
+  shots = order.map(el => shots.find(s => s.el === el)).filter(Boolean);
+  shots.forEach((s, i) => {
+    s.idx = i;
+    s.el.querySelector(".num").textContent = "Shot " + (i + 1);
+  });
+  if(selected) $("stageCap").textContent =
+    `Shot ${selected.idx+1} — ${selected.el.querySelector(".cap").textContent}`;
+}
+
+/* ---------------- queueing ---------------- */
+async function queueShot(s, reroll){
+  if(reroll){
+    s.seed = Math.floor(Math.random() * 2**48);
+    s.text = s.el.querySelector(".cap").textContent.trim() || s.text;
+  }
+  s.done = false; s.error = null; s.img = null;
+  s.el.classList.remove("err");
+  setOverlay(s, "queued…", 0);
+  try{
+    let queued = null;
+    try{ queued = await compileViaBackend(s); }
+    catch(_){ /* backend route missing or failed — fall back to local build */ }
+    if(queued){
+      s.promptId = queued.prompt_id;
+    }else{
+      const res = await fetch("/prompt", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({prompt: buildWorkflowLocal(fullPrompt(s.text), s.seed), client_id: clientId})
+      });
+      const data = await res.json();
+      if(!res.ok || data.error) throw new Error(data.error?.message || JSON.stringify(data));
+      s.promptId = data.prompt_id;
+    }
+    byPrompt.set(s.promptId, s);
+    pollHistory(s);                       // fallback if the websocket misses events
+  }catch(e){ failShot(s, "Queue failed: " + e.message); }
+  updateStatus();
+}
+
+async function pollHistory(s){
+  const id = s.promptId;
+  for(let i = 0; i < 600 && !s.done && s.promptId === id; i++){
+    await new Promise(r => setTimeout(r, 3000));
+    if(s.done || s.promptId !== id) return;
+    try{
+      const h = await (await fetch("/history/" + id)).json();
+      const entry = h[id];
+      if(!entry) continue;
+      if(entry.status?.status_str === "error")
+        return failShot(s, "Execution error (see ComfyUI console)");
+      for(const out of Object.values(entry.outputs || {}))
+        if(out.images?.length) return finishShot(s, out.images[0]);
+    }catch(_){/* server busy — keep polling */}
+  }
+}
+
+/* ---------------- websocket progress ---------------- */
+function connectWS(){
+  const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws?clientId=${clientId}`);
+  ws.onopen  = () => { $("conn").textContent = "ComfyUI connected"; $("conn").className = "ok"; };
+  ws.onclose = () => { $("conn").textContent = "disconnected — retrying"; $("conn").className = "bad"; setTimeout(connectWS, 2000); };
+  ws.onmessage = ev => {
+    if(typeof ev.data !== "string") return;
+    let m; try{ m = JSON.parse(ev.data); }catch(_){ return; }
+    const s = m.data?.prompt_id && byPrompt.get(m.data.prompt_id);
+    if(!s || s.done) return;
+    if(m.type === "progress") setOverlay(s, `sampling ${m.data.value}/${m.data.max}`, m.data.value / m.data.max);
+    else if(m.type === "executing" && m.data.node) setOverlay(s, "running…", 0);
+    else if(m.type === "executed" && m.data.output?.images?.length) finishShot(s, m.data.output.images[0]);
+    else if(m.type === "execution_error") failShot(s, m.data.exception_message || "execution error");
+  };
+}
+if(SERVED_BY_COMFY) connectWS();
+else { $("conn").textContent = "not served by ComfyUI"; $("conn").className = "bad"; }
+
+/* ---------------- reference image (Studio Assets) ---------------- */
+async function uploadRef(file){
+  if(!file || !file.type.startsWith("image/")) return;
+  const fd = new FormData();
+  fd.append("image", file);
+  fd.append("type", "input");
+  try{
+    const res = await fetch("/upload/image", {method:"POST", body:fd});
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    refImage = await res.json();          // {name, subfolder, type}
+    let img = $("dropZone").querySelector("img");
+    if(!img){ img = document.createElement("img"); $("dropZone").appendChild(img); }
+    img.src = viewUrl({filename:refImage.name, subfolder:refImage.subfolder, type:"input"});
+    $("dropHint").style.display = "none";
+    $("refClear").style.display = "block";
+    if(parseInt($("influence").value) === 0){ $("influence").value = 40; $("influenceVal").textContent = "40%"; }
+    updateContinuity();
+  }catch(e){ updateStatus("Reference upload failed: " + e.message); }
+}
+$("dropZone").onclick = () => $("fileInput").click();
+$("fileInput").onchange = e => uploadRef(e.target.files[0]);
+$("dropZone").ondragover = e => { e.preventDefault(); $("dropZone").classList.add("over"); };
+$("dropZone").ondragleave = () => $("dropZone").classList.remove("over");
+$("dropZone").ondrop = e => {
+  e.preventDefault();
+  $("dropZone").classList.remove("over");
+  uploadRef(e.dataTransfer.files[0]);
+};
+$("refClear").onclick = () => {
+  refImage = null;
+  $("dropZone").querySelector("img")?.remove();
+  $("dropHint").style.display = "";
+  $("refClear").style.display = "none";
+  updateContinuity();
+};
+$("influence").oninput = () => { $("influenceVal").textContent = $("influence").value + "%"; updateContinuity(); };
+$("character").oninput = updateContinuity;
+$("seedLock").onchange = updateContinuity;
+
+let syncT;
+function updateContinuity(){
+  const desc = $("character").value.trim();
+  const active = (refImage && parseInt($("influence").value) > 0) || desc || $("seedLock").checked;
+  $("continuity").textContent = active ? "✓ Continuity Engine Active" : "○ Continuity engine idle";
+  $("continuity").className = active ? "on" : "";
+  clearTimeout(syncT);                    // mirror the lock into the backend engine
+  syncT = setTimeout(() => {
+    const opts = {headers:{"Content-Type":"application/json"}};
+    if(refImage || desc)
+      fetch("/promptrelay/storyboard/character", {...opts, method:"POST",
+        body: JSON.stringify(characterBody())}).catch(()=>{});
+    else
+      fetch("/promptrelay/storyboard/character", {method:"DELETE"}).catch(()=>{});
+  }, 400);
+}
+updateContinuity();
+
+/* ---------------- model dropdowns + style presets ---------------- */
+async function loadModels(){
+  const pick = (sel, names, prefer) => {
+    sel.innerHTML = sel.id === "lora" ? '<option value="none">none</option>' : "";
+    for(const n of names){ const o = document.createElement("option"); o.value = o.textContent = n; sel.appendChild(o); }
+    const hit = names.find(n => n.toLowerCase().includes(prefer));
+    if(hit) sel.value = hit;
+  };
+  try{
+    const info = await (await fetch("/object_info")).json();
+    pick($("unet"), info.UNETLoader.input.required.unet_name[0], "z_image");
+    pick($("clip"), info.CLIPLoader.input.required.clip_name[0], "qwen_3_4b");
+    pick($("vae"),  info.VAELoader.input.required.vae_name[0],  "ae.safetensors");
+    pick($("lora"), info.LoraLoaderModelOnly.input.required.lora_name[0], " ");
+    $("lora").value = "none";
+  }catch(e){ updateStatus("Could not load model lists: " + e.message); }
+}
+async function loadPresets(){
+  try{
+    const st = await (await fetch("/promptrelay/storyboard/state")).json();
+    const sel = $("stylePreset");
+    sel.innerHTML = "";
+    for(const [name, prompt] of Object.entries(st.style_presets)){
+      const o = document.createElement("option");
+      o.value = o.dataset.prompt = prompt; o.textContent = name; sel.appendChild(o);
+    }
+    sel.onchange = () => { $("style").value = sel.value; };
+    const cur = [...sel.options].find(o => o.textContent === st.active_style_preset);
+    if(cur){ sel.value = cur.value; $("style").value = cur.value; }
+  }catch(_){ $("stylePreset").innerHTML = "<option>backend offline — type a style below</option>"; }
+}
+if(SERVED_BY_COMFY){ loadModels(); loadPresets(); }
+
+/* ---------------- script file loading + character isolation ---------------- */
+$("loadFileBtn").onclick = () => $("scriptFile").click();
+$("scriptFile").onchange = e => {
+  const f = e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    $("script").value = r.result;
+    updateStatus(`Loaded ${f.name} (${r.result.length} chars). Hit ✂ Character shots to isolate your character, or Generate to use it as-is.`);
+  };
+  r.readAsText(f);
+  e.target.value = "";
+};
+$("isolateBtn").onclick = async () => {
+  const raw = $("script").value;
+  if(!raw.trim()){ updateStatus("Script is empty — load or paste one first."); return; }
+  try{
+    const res = await fetch("/promptrelay/storyboard/parse_script", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({script_text: raw, aliases: $("aliases").value,
+                            character: characterBody(), compile: false})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || "HTTP " + res.status);
+    if(!data.scenes.length){
+      updateStatus(`No sentences matched the character (looked for: ${data.match_terms.join(", ")}).`);
+      return;
+    }
+    $("script").value = data.scenes.map((sc, i) => `Scene ${i+1}:\n${sc.sentence}`).join("\n");
+    updateStatus(`Isolated ${data.scenes.length} character sentences (matched: ${data.match_terms.join(", ")}). Review the scenes, then hit Generate.`);
+  }catch(e){ updateStatus("Parse failed: " + e.message); }
+};
+
+/* ---------------- main actions ---------------- */
+$("generate").onclick = async () => {
+  const scenes = parseScript($("script").value);
+  if(!scenes.length){ updateStatus("No scenes found — write at least one scene."); return; }
+  $("track").innerHTML = ""; shots = []; byPrompt.clear(); selected = null;
+  $("stageImg").style.display = "none"; $("stageCap").style.display = "none";
+  $("stageEmpty").style.display = "";
+  const baseSeed = $("seed").value.trim() ? parseInt($("seed").value) : Math.floor(Math.random() * 2**48);
+  const locked = $("seedLock").checked;
+  $("generate").disabled = true;
+  for(let i = 0; i < scenes.length; i++){
+    const s = addShot(scenes[i], locked ? baseSeed : baseSeed + i);
+    await queueShot(s, false);
+  }
+  $("generate").disabled = false;
+};
+$("clearBtn").onclick = () => {
+  $("track").innerHTML = ""; shots = []; byPrompt.clear(); selected = null;
+  $("stageImg").style.display = "none"; $("stageCap").style.display = "none";
+  $("stageEmpty").style.display = ""; updateStatus();
+};
+$("printBtn").onclick = () => window.print();
+
+/* contact-sheet PNG export (follows current track order) */
+$("pngBtn").onclick = async () => {
+  const ready = shots.filter(s => s.img);
+  if(!ready.length){ updateStatus("Nothing to export yet."); return; }
+  const cols = Math.min(3, ready.length), pad = 24, capH = 56, titleH = 64;
+  const imgs = await Promise.all(ready.map(s => new Promise(res => {
+    const im = new Image(); im.onload = () => res(im); im.src = viewUrl(s.img);
+  })));
+  const cw = 480, ch = Math.round(cw * imgs[0].height / imgs[0].width);
+  const rows = Math.ceil(ready.length / cols);
+  const cv = document.createElement("canvas");
+  cv.width = cols * cw + (cols + 1) * pad;
+  cv.height = titleH + rows * (ch + capH + pad) + pad;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = "#111"; ctx.font = "bold 26px Segoe UI";
+  ctx.fillText($("boardTitle").value, pad, 42);
+  ready.forEach((s, i) => {
+    const x = pad + (i % cols) * (cw + pad), y = titleH + Math.floor(i / cols) * (ch + capH + pad);
+    ctx.drawImage(imgs[i], x, y, cw, ch);
+    ctx.strokeStyle = "#999"; ctx.strokeRect(x + .5, y + .5, cw - 1, ch - 1);
+    ctx.fillStyle = "#111"; ctx.font = "bold 14px Segoe UI";
+    ctx.fillText("Shot " + (s.idx + 1), x, y + ch + 20);
+    ctx.font = "12px Segoe UI"; ctx.fillStyle = "#333";
+    const words = s.el.querySelector(".cap").textContent.split(/\s+/);
+    let line = "", ln = 0;
+    for(const wd of words){
+      if(ctx.measureText(line + " " + wd).width > cw - 70 && line){
+        ctx.fillText(line, x + 60, y + ch + 20 + ln * 15);
+        line = wd; if(++ln > 1){ line += "…"; break; }
+      } else line = line ? line + " " + wd : wd;
+    }
+    ctx.fillText(line, x + 60, y + ch + 20 + ln * 15);
+  });
+  cv.toBlob(b => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(b);
+    a.download = ($("boardTitle").value || "storyboard").replace(/[^\w\- ]/g, "") + ".png";
+    a.click();
+  });
+};
+</script>
+</body>
+</html>

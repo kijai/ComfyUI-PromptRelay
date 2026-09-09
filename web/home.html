@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Drama.Land — AI Video Studio</title>
+<style>
+  :root {
+    --bg:#000; --panel:#0e0e10; --line:#1f1f24; --text:#ece9e2; --dim:#86868f;
+    --cream:#efe9da; --red:#e11d2a; --red2:#ff3b48; --chip:#15151a;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; min-height:100%; }
+  body { background:var(--bg); color:var(--text); overflow-x:hidden;
+    font:14px/1.55 system-ui,Segoe UI,Roboto,sans-serif; }
+  a { color:inherit; text-decoration:none; }
+  /* top bar */
+  .top { position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:14px;
+    padding:14px 26px 14px 80px; background:linear-gradient(#000,rgba(0,0,0,.55)); }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand .mark { width:30px; height:34px; border-radius:7px; background:#111; border:1px solid #2a2a2f;
+    display:grid; place-items:center; font-size:8px; font-weight:800; color:var(--cream);
+    line-height:1; text-align:center; }
+  .brand .word { font-family:var(--serif); font-style:italic; font-weight:700; font-size:23px;
+    color:var(--cream); position:relative; }
+  .brand .word::after { content:""; position:absolute; left:0; right:55%; bottom:-4px;
+    height:3px; background:var(--red); border-radius:2px; }
+  .top .spacer { flex:1; }
+  .qa { display:flex; gap:7px; }
+  .qa span { width:31px; height:31px; border-radius:50%; background:#1a0506;
+    border:1px solid #3a0e11; display:grid; place-items:center; color:var(--red2); font-size:13px; }
+  .credit { display:flex; align-items:center; gap:7px; background:#1a0506; border:1px solid #3a0e11;
+    border-radius:20px; padding:5px 12px; font-weight:700; }
+  .credit.build { background:rgba(59,130,246,.15); border-color:rgba(59,130,246,.4);
+    color:#3b82f6; }
+  .credit .tier { color:var(--red2); font-size:11px; letter-spacing:.06em; }
+  .pricing { background:linear-gradient(135deg,var(--red),#7a0c13); border-radius:20px; padding:6px 16px;
+    font-weight:600; }
+  .avatar { width:30px; height:30px; border-radius:50%; background:var(--red); display:grid;
+    place-items:center; font-weight:700; color:#fff; }
+  /* nav rail */
+  .rail { position:fixed; left:14px; top:50%; transform:translateY(-50%); z-index:25;
+    display:flex; flex-direction:column; gap:8px; background:#0d0d10; border:1px solid var(--line);
+    border-radius:22px; padding:8px; }
+  .rail a { width:42px; height:42px; border-radius:50%; display:grid; place-items:center;
+    color:var(--dim); font-size:18px; position:relative; }
+  .rail a.active { background:var(--red); color:#fff; }
+  .rail a .new { position:absolute; top:-4px; right:-6px; background:var(--red); color:#fff;
+    font-size:8px; padding:1px 4px; border-radius:6px; font-weight:700; }
+  /* hero */
+  .hero { position:relative; text-align:center; padding:46px 26px 8px; }
+  .hero::before { content:""; position:absolute; inset:0; z-index:-1;
+    background:radial-gradient(60% 70% at 72% 35%, rgba(225,29,42,.28), transparent 70%); }
+  .hero h1 { font-family:var(--serif); color:var(--cream); font-weight:700; line-height:1.02;
+    font-size:clamp(40px,7.5vw,92px); margin:0; }
+  .hero h1 em { font-style:italic; }
+  .hero .sub { font-family:var(--serif); font-style:italic; color:#b9b4a8;
+    font-size:clamp(15px,2.2vw,24px); margin-top:14px; }
+  .wrap { max-width:1180px; margin:0 auto; padding:0 26px 120px; }
+  /* central composer */
+  .maker { max-width:880px; margin:26px auto 8px; background:#101013; border:1px solid #26262c;
+    border-radius:20px; padding:14px 16px; box-shadow:0 18px 60px rgba(0,0,0,.5); }
+  .maker textarea { width:100%; min-height:46px; max-height:160px; resize:none; background:transparent;
+    border:none; outline:none; color:var(--text); font:16px/1.5 inherit; }
+  .maker .row { display:flex; align-items:center; gap:8px; margin-top:8px; }
+  .maker .row .grow { flex:1; }
+  .mbtn { background:#1b1b21; border:1px solid var(--line); color:#c8c8cf; border-radius:18px;
+    padding:6px 12px; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .mbtn .dot { width:6px; height:6px; border-radius:50%; background:var(--red); }
+  .toggle { display:flex; background:#1b1b21; border:1px solid var(--line); border-radius:18px; overflow:hidden; }
+  .toggle button { background:transparent; border:none; color:var(--dim); padding:6px 13px; font:inherit;
+    font-size:13px; cursor:pointer; }
+  .toggle button.on { background:var(--red); color:#fff; }
+  .go { width:36px; height:36px; border-radius:50%; border:none; flex-shrink:0;
+    background:linear-gradient(135deg,var(--red),#7a0c13); color:#fff; font-size:17px; cursor:pointer; }
+  .go:disabled { opacity:.5; }
+  .skills-menu { position:relative; }
+  .skills-pop { position:absolute; bottom:calc(100% + 6px); left:0; width:230px; background:#141418;
+    border:1px solid #2a2a31; border-radius:12px; padding:8px; display:none; z-index:30; }
+  .skills-pop.open { display:block; }
+  .skills-pop .lbl { color:var(--dim); font-size:11px; text-transform:uppercase; padding:4px 8px; }
+  .skills-pop .opt { display:flex; justify-content:space-between; align-items:center; padding:7px 8px;
+    border-radius:8px; cursor:pointer; font-size:13px; }
+  .skills-pop .opt:hover { background:#1f1f26; }
+  .skills-pop .opt.sel { color:#fff; } .skills-pop .opt .pr { color:var(--red2); font-size:9px;
+    border:1px solid #3a0e11; border-radius:5px; padding:1px 5px; letter-spacing:.05em; }
+  .chips { text-align:center; margin:14px 0 6px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .chips .chip { background:#121216; border:1px solid var(--line); border-radius:18px; padding:7px 15px;
+    font-size:13px; cursor:pointer; color:#c8c8cf; }
+  .chips .chip:hover { border-color:#3a3a42; color:#fff; }
+  .excl { text-align:center; color:#4d4d55; font-size:11px; letter-spacing:.18em; margin-top:18px; }
+  /* section */
+  .sec-hd { display:flex; align-items:baseline; gap:14px; margin:46px 0 16px; }
+  .sec-hd h2 { font-size:24px; font-weight:800; letter-spacing:.04em; margin:0; }
+  .sec-hd .desc { color:var(--dim); font-size:13px; }
+  .sec-hd .seeall { margin-left:auto; background:#121216; border:1px solid var(--line); border-radius:18px;
+    padding:7px 15px; font-size:13px; color:#c8c8cf; }
+  /* AI CREATIVES carousel */
+  .carousel { display:flex; gap:16px; overflow-x:auto; padding-bottom:8px; scroll-snap-type:x mandatory; }
+  .carousel::-webkit-scrollbar { height:0; }
+  .tool { flex:0 0 230px; scroll-snap-align:start; background:var(--panel); border:1px solid var(--line);
+    border-radius:16px; overflow:hidden; cursor:pointer; }
+  .tool:hover { border-color:#34343c; }
+  .tool .th { aspect-ratio:1/1; background:radial-gradient(120% 90% at 50% 0,#1a1320,#0a0a0a);
+    display:grid; place-items:center; font-size:40px; }
+  .tool .meta { padding:11px 13px; }
+  .tool .meta .t { display:flex; align-items:center; justify-content:space-between; font-weight:700; }
+  .tool .meta .t .pr { color:var(--red2); font-size:9px; border:1px solid #3a0e11; border-radius:5px;
+    padding:1px 5px; }
+  .tool .meta .d { color:var(--dim); font-size:12px; margin-top:3px; white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis; }
+  /* gallery */
+  .gallery { column-count:4; column-gap:16px; }
+  @media (max-width:1024px){ .gallery{ column-count:3; } }
+  @media (max-width:680px){ .gallery{ column-count:2; } }
+  .card { break-inside:avoid; margin:0 0 16px; border-radius:16px; overflow:hidden; position:relative;
+    background:var(--panel); border:1px solid var(--line); cursor:pointer; display:block; }
+  .card:hover { border-color:#34343c; }
+  .card video, .card img { width:100%; display:block; background:#0a0a0a; }
+  .card .ph { aspect-ratio:3/4; display:grid; place-items:center; padding:18px; text-align:center;
+    font-family:var(--serif); font-style:italic; color:var(--cream); font-size:20px;
+    background:radial-gradient(120% 80% at 50% 0,#1a1320,#0a0a0a); }
+  .tags { position:absolute; top:10px; left:10px; display:flex; gap:6px; flex-wrap:wrap; }
+  .tag { background:rgba(0,0,0,.55); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.08);
+    color:#eaeaea; font-size:11px; padding:3px 9px; border-radius:20px; }
+  .ctitle { position:absolute; left:0; right:0; bottom:0; padding:26px 12px 11px; font-size:13px;
+    font-weight:600; color:#fff; background:linear-gradient(transparent,rgba(0,0,0,.8)); }
+  .empty { text-align:center; color:var(--dim); padding:40px 0; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <a class="brand" href="/promptrelay/studio/home">
+      <span class="mark">DRAMA<br>LAND</span><span class="word">Drama.Land</span>
+    </a>
+    <div class="spacer"></div>
+    <div class="credit build">Build</div>
+    <div class="pricing">Pricing</div>
+  </div>
+
+  <div class="rail">
+    <a class="active" title="Home">⌂</a>
+    <a title="Create">🖼</a>
+    <a title="Avatar">🤖</a>
+    <a title="Tools">🛠<span class="new">NEW</span></a>
+  </div>
+
+  <div class="hero">
+    <h1>Play Your Idea<br>in <em>Drama.Land</em></h1>
+    <div class="sub">To music videos, dramas, or anything your story becomes.</div>
+  </div>
+
+  <div class="wrap">
+    <!-- central composer -->
+    <div class="maker">
+      <textarea id="idea" placeholder="Create a cinematic talking-influencer video…"></textarea>
+      <div class="row">
+        <div class="mbtn" title="Attach">＋</div>
+        <div class="skills-menu">
+          <div class="mbtn" id="skillsBtn">✨ Skills <span id="skillSel" style="color:#fff"></span> ▾</div>
+          <div class="skills-pop" id="skillsPop">
+            <div class="lbl">Models</div>
+            <div class="opt" data-m="GPT-2-Image">GPT-2-Image</div>
+            <div class="opt" data-m="Seedance 2.0">Seedance 2.0 <span class="pr">PREMIUM</span></div>
+            <div class="opt" data-m="Kling 3.0 Pro">Kling 3.0 Pro <span class="pr">PREMIUM</span></div>
+            <div class="opt" data-m="HappyHorse">HappyHorse <span class="pr">PREMIUM</span></div>
+            <div class="opt" data-m="Grok Imagine">Grok Imagine</div>
+          </div>
+        </div>
+        <div class="mbtn">⚙ Settings</div>
+        <div class="mbtn">@ <span class="dot"></span></div>
+        <div class="grow"></div>
+        <div class="toggle" id="modeToggle">
+          <button data-mode="classic">Classic</button>
+          <button data-mode="agentic" class="on">Agentic</button>
+        </div>
+        <button class="go" id="go">↑</button>
+      </div>
+    </div>
+    <div class="chips" id="chips">
+      <div class="chip" data-p="Make a music-video style talking influencer">Music Video Studio</div>
+      <div class="chip" data-p="Create a short narrative film with my character talking">Narrative Films</div>
+      <div class="chip" data-p="Generate a portrait image for my influencer">Image Studio</div>
+    </div>
+    <div class="excl">EXCLUSIVE AT DRAMA.LAND</div>
+
+    <!-- AI CREATIVES -->
+    <div class="sec-hd">
+      <h2>AI CREATIVES</h2><span class="desc">Create faster with ready-to-use AI tools</span>
+      <span class="seeall">See all ›</span>
+    </div>
+    <div class="carousel" id="carousel"></div>
+
+    <!-- creations -->
+    <div class="sec-hd"><h2>THE DRAMA.LANDS</h2><span class="desc">Your creations</span></div>
+    <div class="gallery" id="gallery"><div class="empty">Loading…</div></div>
+  </div>
+
+<script>
+const API = "/promptrelay/studio";
+const mediaUrl = (id, f) => `${API}/media/${id}/${f}`;
+const el = (t, c, txt) => { const e = document.createElement(t); if (c) e.className = c;
+  if (txt != null) e.textContent = txt; return e; };
+
+const DEFAULTS = { cat_name:"Whiskers", show_title:"The Cat Chat Show",
+  episode:"Why Humans Are So Weird", cat_photo_url:"", voice_name:"Anthony",
+  voice_description:"Magnetic, lazy, playful wit", voice_language:"EN_British",
+  lipsync_service:"dlai2v_pro", requested_output:"talking influencer video" };
+
+const TOOLS = [
+  ["🎞","Concept Films","Create cinematic concept-films"],
+  ["🖼","GPT-2-Image","Generate images with OpenAI's GPT-2-Image"],
+  ["🎬","Narrative Films","Create cinematic short films"],
+  ["🪐","Seedance 2.0","Generate cinematic videos","PREMIUM"],
+  ["🐎","HappyHorse","Generate stylized, playful video","PREMIUM"],
+  ["😼","Meme Studio","Create and remix memes"],
+];
+
+let mode = "agentic", model = "";
+
+/* mode toggle */
+document.getElementById("modeToggle").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  mode = b.dataset.mode;
+  document.querySelectorAll("#modeToggle button").forEach(x => x.classList.toggle("on", x === b));
+};
+/* skills dropdown */
+const pop = document.getElementById("skillsPop");
+document.getElementById("skillsBtn").onclick = e => { e.stopPropagation(); pop.classList.toggle("open"); };
+document.addEventListener("click", () => pop.classList.remove("open"));
+pop.onclick = e => { const o = e.target.closest(".opt"); if (!o) return;
+  model = o.dataset.m; document.getElementById("skillSel").textContent = "· " + model;
+  document.querySelectorAll(".skills-pop .opt").forEach(x => x.classList.toggle("sel", x === o));
+  pop.classList.remove("open"); };
+/* studio chips + tool cards prefill the composer */
+document.getElementById("chips").onclick = e => {
+  const c = e.target.closest(".chip"); if (c) document.getElementById("idea").value = c.dataset.p;
+};
+
+function renderTools() {
+  const c = document.getElementById("carousel");
+  for (const [icon, name, desc, premium] of TOOLS) {
+    const card = el("div","tool");
+    card.appendChild(Object.assign(el("div","th"), { textContent: icon }));
+    const meta = el("div","meta");
+    const t = el("div","t"); t.appendChild(el("span", null, name));
+    if (premium) t.appendChild(el("span","pr", premium)); else t.appendChild(el("span", null, "↗"));
+    meta.appendChild(t); meta.appendChild(el("div","d", desc)); card.appendChild(meta);
+    card.onclick = () => { document.getElementById("idea").value =
+      `Use ${name}: ` + (document.getElementById("idea").value || "make a talking-influencer video");
+      document.getElementById("idea").focus(); };
+    c.appendChild(card);
+  }
+}
+
+async function loadGallery() {
+  const g = document.getElementById("gallery");
+  let projects = [];
+  try { projects = (await (await fetch(`${API}/projects`)).json()).projects || []; } catch {}
+  g.innerHTML = "";
+  if (!projects.length) { g.innerHTML = '<div class="empty">No creations yet — type an idea above.</div>'; return; }
+  for (const p of projects) {
+    const card = el("a","card"); card.href = `${API}/ui?id=${p.id}`;
+    const tags = el("div","tags"); tags.appendChild(el("span","tag","🎬 Talking MV"));
+    if (p.tag) tags.appendChild(el("span","tag", p.tag));
+    card.appendChild(tags);
+    if (p.video) {
+      const v = el("video"); v.src = mediaUrl(p.id, p.video); v.muted = true; v.preload = "metadata"; v.playsInline = true;
+      card.addEventListener("mouseenter", () => v.play().catch(()=>{}));
+      card.addEventListener("mouseleave", () => { v.pause(); v.currentTime = 0; });
+      card.appendChild(v);
+    } else if (p.image) { const im = el("img"); im.src = mediaUrl(p.id, p.image); card.appendChild(im); }
+    else card.appendChild(el("div","ph", p.title));
+    card.appendChild(el("div","ctitle", p.title + (p.subtitle ? " — " + p.subtitle : "")));
+    g.appendChild(card);
+  }
+}
+
+async function create() {
+  const idea = document.getElementById("idea").value.trim();
+  document.getElementById("go").disabled = true;
+  const inputs = { ...DEFAULTS };
+  if (idea) inputs.requested_output = idea.slice(0, 80);
+  const r = await fetch(`${API}/project`, { method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ inputs, request: idea || "Turn my cat into a talking influencer." }) });
+  const j = await r.json();
+  location.href = `${API}/ui?id=${j.id}&autostart=1&mode=${mode}`;
+}
+document.getElementById("go").onclick = create;
+const ideaEl = document.getElementById("idea");
+ideaEl.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); create(); } });
+ideaEl.addEventListener("input", () => { ideaEl.style.height = "auto"; ideaEl.style.height = Math.min(ideaEl.scrollHeight,160)+"px"; });
+
+renderTools(); loadGallery();
+</script>
+</body>
+</html>

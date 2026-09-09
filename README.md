@@ -11,6 +11,52 @@ https://gordonchen19.github.io/Prompt-Relay/
 
 ---
 
+## Storyboard
+
+With ComfyUI running, open:
+
+```
+http://127.0.0.1:8188/extensions/ComfyUI-PromptRelay/storyboard.html
+```
+
+A three-pane workspace: **Director Control Panel** (script + style + settings), **Visual Timeline** (preview stage + horizontal shot track), and **Studio Assets** (continuity controls). Paste a script using the same scene syntax as the Smart node (`Scene 1:` headers or `|`-separated) and hit **Generate** — each scene becomes one shot rendered with Z-Image Turbo (one queued ComfyUI job per shot, live progress over websocket).
+
+- **Drag shots left/right on the timeline track to reorder the sequence** — shot numbers, exports, and print order follow the track; click a shot to preview it large on the stage
+- Per-shot **reroll** (new seed) and editable captions (the caption is the prompt used on reroll)
+- **Continuity controls**: drop a reference image (uploaded to ComfyUI, rendered over via img2img with an influence slider), a recurring-character description appended to every shot, and a seed-lock toggle that uses one seed for the whole board
+- Style presets (loaded from the backend) or a freeform style line; optional style LoRA
+- Export: **Print / PDF** or a **contact-sheet PNG** with numbered captions
+- Shots are also saved to `ComfyUI/output/storyboard/`
+
+### Storyboard HTTP API
+
+The continuity logic lives server-side in [`storyboard_engine.py`](./storyboard_engine.py) (the page uses it too, with a local fallback):
+
+```
+GET    /promptrelay/storyboard/state         engine state, style presets, detected models
+POST   /promptrelay/storyboard/character     {"reference_image", "character_description",
+                                              "weight_modifier", "aliases": ["Maya", ...]}
+DELETE /promptrelay/storyboard/character
+POST   /promptrelay/storyboard/compile       {"scenes": ["...", ...], "style_preset", "width", "height",
+                                              "steps", "seed", "seed_lock", "queue": true}
+POST   /promptrelay/storyboard/parse_script  {"script_text" | "script_file", "aliases", "max_shots",
+                                              "compile": true, "queue": true, ...same gen params}
+```
+
+`compile` merges each scene with the locked character (description injected into the prompt; reference image applied via img2img, `weight_modifier` → inverse denoise), builds the full ComfyUI workflow per shot, and with `"queue": true` submits them and returns `prompt_id`s.
+
+`parse_script` is the automated script parser: it splits a raw text script into sentences (abbreviation-aware; `Scene N:` headers and `INT./EXT.` slug lines act as breaks), isolates the sentences featuring the locked character (matched by `aliases`, falling back to keywords from the character description, with person-pronoun follow-up sentences chained in), and returns the array of formatted shot payloads — optionally queueing them in one call. In the workspace UI this is the **📄 Load script** + **✂ Character shots** buttons.
+
+CLI (no ComfyUI needed):
+
+```
+python storyboard_engine.py script.txt --aliases "Maya" --description "a woman in a yellow raincoat"
+```
+
+Model requirements (the defaults auto-select them if present): `z_image_turbo_bf16.safetensors` (diffusion_models), `qwen_3_4b.safetensors` (text_encoders), `ae.safetensors` (vae).
+
+---
+
 ## Prompt Relay Encode (Smart)
 
 <img width="1486" alt="image" src="./assets/smart_nodes.png" />

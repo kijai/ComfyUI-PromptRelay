@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relay Director — AI Creator Studio</title>
+<style>
+  :root{
+    --bg:#0c0e12; --bg2:#12151b; --panel:#161a22; --panel2:#1c212b;
+    --line:#262c38; --line2:#323a48; --txt:#e8edf4; --mut:#8b94a6; --mut2:#5d6678;
+    --acc:#34e6a8; --acc2:#1fd0e0; --warn:#ffb454; --bad:#ff6b6b;
+    --rad:14px; --shadow:0 8px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#15212a 0%,var(--bg) 55%);
+    color:var(--txt);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    overflow:hidden}
+  button{font:inherit;cursor:pointer;color:inherit;border:none;background:none}
+  textarea,input{font:inherit;color:inherit}
+  .hide{display:none!important}
+
+  /* ── Top bar ── */
+  .top{display:flex;align-items:center;gap:14px;height:54px;padding:0 16px;
+    border-bottom:1px solid var(--line);background:rgba(18,21,27,.7);backdrop-filter:blur(8px)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.2px}
+  .logo{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));color:#062018;font-weight:900}
+  .story-name{background:transparent;border:1px solid transparent;border-radius:8px;
+    padding:5px 8px;color:var(--txt);font-weight:600;min-width:120px;max-width:320px}
+  .story-name:hover{border-color:var(--line2)}
+  .story-name:focus{outline:none;border-color:var(--acc);background:var(--bg2)}
+  .views{display:flex;gap:4px;margin:0 auto;background:var(--panel);padding:4px;border-radius:11px;
+    border:1px solid var(--line)}
+  .views button{padding:6px 16px;border-radius:8px;color:var(--mut);font-weight:600;display:flex;
+    align-items:center;gap:7px}
+  .views button.on{background:var(--panel2);color:var(--txt);box-shadow:inset 0 0 0 1px var(--line2)}
+  .tb{display:flex;align-items:center;gap:8px}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid var(--line2);
+    border-radius:9px;color:var(--mut);font-weight:600;font-size:13px;background:var(--panel)}
+  .chip:hover{color:var(--txt);border-color:var(--acc)}
+  .btn-pri{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#062018;font-weight:700;
+    padding:7px 16px;border-radius:9px}
+  .btn-pri:hover{filter:brightness(1.08)}
+  .btn-pri:disabled{opacity:.45;cursor:not-allowed;filter:none}
+  select.chip{appearance:none;padding-right:24px;background-image:
+    linear-gradient(45deg,transparent 50%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 50%);
+    background-position:calc(100% - 14px) 14px,calc(100% - 9px) 14px;background-size:5px 5px;background-repeat:no-repeat}
+
+  /* ── Layout ── */
+  .wrap{display:flex;height:calc(100vh - 54px)}
+  .chat{width:380px;min-width:340px;display:flex;flex-direction:column;border-right:1px solid var(--line);
+    background:var(--bg2)}
+  .stage{flex:1;display:flex;flex-direction:column;min-width:0}
+
+  /* ── Chat panel ── */
+  .chat-h{padding:13px 16px;border-bottom:1px solid var(--line);font-weight:700;display:flex;
+    align-items:center;gap:9px}
+  .chat-h .dot{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc)}
+  .chat-scroll{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:92%;padding:10px 13px;border-radius:13px;white-space:pre-wrap;word-break:break-word}
+  .msg.user{align-self:flex-end;background:linear-gradient(135deg,#1f6f5c,#1a5560);color:#eafff7;
+    border-bottom-right-radius:4px}
+  .msg.ai{align-self:flex-start;background:var(--panel);border:1px solid var(--line);
+    border-bottom-left-radius:4px}
+  .msg.think{align-self:flex-start;background:transparent;border:1px dashed var(--line2);color:var(--mut);
+    font-size:13px;font-style:italic}
+  .msg.log{align-self:flex-start;background:#0a0c10;border:1px solid var(--line);color:var(--acc2);
+    font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;max-width:100%}
+  .msg.status{align-self:center;color:var(--mut);font-size:12.5px;background:none}
+  .msg b{color:var(--acc)}
+  .composer{padding:13px;border-top:1px solid var(--line);background:var(--bg2)}
+  .composer .box{background:var(--panel);border:1px solid var(--line2);border-radius:13px;padding:10px 12px;
+    display:flex;flex-direction:column;gap:8px}
+  .composer .box:focus-within{border-color:var(--acc)}
+  .composer textarea{background:none;border:none;resize:none;outline:none;width:100%;max-height:120px;
+    color:var(--txt)}
+  .composer .row{display:flex;align-items:center;gap:8px}
+  .composer .hint{color:var(--mut2);font-size:12px;margin-right:auto}
+  .send{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--acc),var(--acc2));
+    color:#062018;font-weight:900;display:grid;place-items:center;font-size:16px}
+  .send:disabled{opacity:.4;cursor:not-allowed}
+  .mic{width:34px;height:34px;border-radius:9px;border:1px solid var(--line2);color:var(--mut);
+    display:grid;place-items:center;font-size:15px;flex:0 0 auto}
+  .mic:hover{color:var(--txt);border-color:var(--acc)}
+  .mic.rec{color:#fff;border-color:var(--bad);background:rgba(255,107,107,.16);
+    animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,107,.5)}50%{box-shadow:0 0 0 6px rgba(255,107,107,0)}}
+
+  /* ── Landing ── */
+  .land{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;
+    text-align:center;gap:18px}
+  .land h1{font-size:30px;margin:0;font-weight:800;letter-spacing:-.5px}
+  .land h1 span{background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;
+    background-clip:text;color:transparent}
+  .land p{color:var(--mut);max-width:460px;margin:0}
+  .land .big{width:min(620px,92%);background:var(--panel);border:1px solid var(--line2);border-radius:16px;
+    padding:14px 16px;box-shadow:var(--shadow)}
+  .land .big textarea{width:100%;background:none;border:none;outline:none;resize:none;height:84px;
+    color:var(--txt);font-size:15px}
+  .land .big .row{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .examples{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:620px}
+  .ex{padding:8px 13px;border:1px solid var(--line2);border-radius:20px;color:var(--mut);font-size:13px}
+  .ex:hover{color:var(--txt);border-color:var(--acc)}
+
+  /* ── Stage header ── */
+  .stage-h{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line)}
+  .stage-h .meta{color:var(--mut);font-size:13px}
+  .stage-h .est{margin-left:auto;color:var(--mut);font-size:13px;display:flex;align-items:center;gap:8px}
+  .eng{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--line2);color:var(--mut)}
+  .eng.real{color:var(--acc);border-color:#1c5a48}
+  .stage-body{flex:1;overflow:auto;padding:18px}
+
+  /* ── Shot grid ── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+  .scene-block{margin-bottom:26px}
+  .scene-title{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-weight:700}
+  .scene-title .n{color:var(--mut);font-weight:600;font-size:13px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--rad);overflow:hidden;
+    display:flex;flex-direction:column;transition:border-color .15s}
+  .card:hover{border-color:var(--line2)}
+  .card .thumb{position:relative;aspect-ratio:16/9;background:#0a0c10 center/cover no-repeat;display:grid;
+    place-items:center;color:var(--mut2)}
+  .card.a916 .thumb{aspect-ratio:9/16}
+  .card.a11 .thumb{aspect-ratio:1/1}
+  .card .thumb video,.card .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .card .num{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);border:1px solid var(--line2);
+    border-radius:7px;padding:2px 8px;font-size:12px;font-weight:700}
+  .card .st{position:absolute;top:8px;right:8px;border-radius:7px;padding:2px 8px;font-size:11px;
+    font-weight:700;background:rgba(0,0,0,.6);border:1px solid var(--line2);color:var(--mut)}
+  .card .st.image,.card .st.clip{color:var(--warn);border-color:#6a5320}
+  .card .st.done{color:var(--acc);border-color:#1c5a48}
+  .card .st.error{color:var(--bad);border-color:#6a2828}
+  .card .body{padding:10px 12px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .card .pr{background:transparent;border:1px solid transparent;border-radius:8px;color:var(--txt);
+    resize:none;font-size:12.5px;line-height:1.45;min-height:46px;padding:6px}
+  .card .pr:hover{border-color:var(--line)}
+  .card .pr:focus{outline:none;border-color:var(--acc);background:var(--bg2)}
+  .card .dlg{color:var(--acc2);font-size:12px;font-style:italic}
+  .card .acts{display:flex;gap:6px;margin-top:auto}
+  .card .acts button{flex:1;padding:6px;border:1px solid var(--line2);border-radius:8px;color:var(--mut);
+    font-size:12px;font-weight:600}
+  .card .acts button:hover{color:var(--txt);border-color:var(--acc)}
+  .card .acts button.busy{color:var(--warn);border-color:#6a5320}
+  .spin{width:30px;height:30px;border:3px solid var(--line2);border-top-color:var(--acc);border-radius:50%;
+    animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* ── Timeline ── */
+  .tl-prev{aspect-ratio:16/9;max-height:54vh;margin:0 auto 16px;background:#000;border-radius:12px;
+    border:1px solid var(--line);overflow:hidden;display:grid;place-items:center;width:100%}
+  .tl-prev video{width:100%;height:100%}
+  .tl-empty{color:var(--mut);text-align:center}
+  .tl-track{display:flex;gap:8px;overflow-x:auto;padding:12px;background:var(--panel);border-radius:12px;
+    border:1px solid var(--line)}
+  .tl-clip{flex:0 0 150px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#0a0c10;
+    border:1px solid var(--line2);position:relative;cursor:pointer}
+  .tl-clip video,.tl-clip img{width:100%;height:100%;object-fit:cover}
+  .tl-clip .n{position:absolute;top:4px;left:4px;background:rgba(0,0,0,.65);border-radius:5px;padding:1px 6px;
+    font-size:11px;font-weight:700}
+  .tl-clip.empty{display:grid;place-items:center;color:var(--mut2)}
+
+  /* ── Story / Assets tab ── */
+  .story-wrap{max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+  .approve-bar{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#10342a,#0e2a30);
+    border:1px solid #1c5a48;border-radius:14px;padding:14px 18px}
+  .approve-bar .t{flex:1}
+  .approve-bar h2{margin:0 0 2px;font-size:16px}
+  .approve-bar p{margin:0;color:var(--mut);font-size:13px}
+  .sec{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .sec h3{margin:0 0 12px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .sec h3 .tag{color:var(--mut2);font-weight:600;font-size:12px}
+  .logline{font-size:16px;line-height:1.5;color:var(--txt)}
+  .world-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .fld label{display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+  .fld input,.fld textarea,.scriptbox{width:100%;background:var(--bg2);border:1px solid var(--line2);
+    border-radius:9px;padding:9px 11px;color:var(--txt);resize:vertical}
+  .fld input:focus,.fld textarea:focus,.scriptbox:focus{outline:none;border-color:var(--acc)}
+  .scriptbox{min-height:120px;line-height:1.6;font-size:13.5px}
+  .cast-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .cast-card{background:var(--bg2);border:1px solid var(--line2);border-radius:12px;overflow:hidden;
+    display:flex;flex-direction:column}
+  .cast-card .ref{aspect-ratio:3/4;background:#0a0c10 center/cover no-repeat;display:grid;place-items:center;
+    color:var(--mut2);position:relative}
+  .cast-card .ref img{width:100%;height:100%;object-fit:cover}
+  .cast-card .ref .regen{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.65);
+    border:1px solid var(--line2);border-radius:7px;padding:3px 8px;font-size:11px;color:var(--txt)}
+  .cast-card .ref .regen:hover{border-color:var(--acc);color:var(--acc)}
+  .cast-card .ci{padding:10px 11px;display:flex;flex-direction:column;gap:6px}
+  .cast-card .nm{font-weight:700;background:none;border:1px solid transparent;border-radius:6px;padding:3px 5px;color:var(--txt)}
+  .cast-card .nm:hover{border-color:var(--line)} .cast-card .nm:focus{outline:none;border-color:var(--acc);background:var(--panel)}
+  .cast-card .role{color:var(--acc2);font-size:11.5px;font-weight:600}
+  .cast-card .desc{font-size:12px;color:var(--mut);line-height:1.45;background:none;border:1px solid transparent;
+    border-radius:6px;padding:4px 5px;resize:none;min-height:54px}
+  .cast-card .desc:hover{border-color:var(--line)} .cast-card .desc:focus{outline:none;border-color:var(--acc);background:var(--panel)}
+  .cast-chips{display:flex;flex-wrap:wrap;gap:4px}
+  .cchip{font-size:10.5px;font-weight:600;color:var(--acc2);background:rgba(31,208,224,.1);
+    border:1px solid #1c4a52;border-radius:20px;padding:1px 8px}
+
+  /* progress bar */
+  .progress{height:3px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:4px}
+  .progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2));
+    transition:width .3s}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--panel2);
+    border:1px solid var(--line2);padding:10px 16px;border-radius:10px;box-shadow:var(--shadow);z-index:50;
+    color:var(--txt)}
+  ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand"><div class="logo">R</div>Relay Director</div>
+  <input id="storyName" class="story-name hide" value="Untitled Story" />
+  <div class="views hide" id="views">
+    <button data-v="story" class="on">📖 Story</button>
+    <button data-v="shot">▦ Shot</button>
+    <button data-v="scene">▤ Scene</button>
+    <button data-v="timeline">▭ Timeline</button>
+  </div>
+  <div class="tb">
+    <select id="aspect" class="chip hide"><option>16:9</option><option>9:16</option><option>1:1</option></select>
+    <label id="ltxWrap" class="chip hide" title="Off = fast ken-burns previews (seconds per clip). On = final pass: Flux-Klein locks each character's face onto the shot, then LTX i2v animates it (slow, minutes per shot). Use for the final render.">
+      <input type="checkbox" id="ltxChk" style="margin:0 7px 0 0;accent-color:var(--acc);vertical-align:-1px">🎬 Final&nbsp;(LTX&nbsp;+&nbsp;face-lock)</label>
+    <button id="renderAll" class="chip hide">⚡ Render all</button>
+    <button id="exportBtn" class="btn-pri hide" disabled>⤓ Export</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- Director chat -->
+  <div class="chat">
+    <div class="chat-h"><span class="dot"></span> Director</div>
+    <div class="chat-scroll" id="chatScroll">
+      <div class="msg ai">Hi — I'm your director. Describe the vibe, the story, the look. I'll break it into scenes and shots, then we generate. Try “a lone astronaut walking across a red desert at golden hour, melancholic, cinematic.”</div>
+    </div>
+    <div class="composer">
+      <div class="box">
+        <textarea id="chatInput" rows="2" placeholder="What's your vision?  Tip: type @shot 2 to re-direct one shot."></textarea>
+        <div class="row">
+          <span class="hint" id="composerHint">Describe your story to begin</span>
+          <button class="mic" id="chatMic" title="Dictate by voice">🎤</button>
+          <button class="send" id="chatSend">↑</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage -->
+  <div class="stage">
+    <!-- Landing -->
+    <div class="land" id="land">
+      <h1>Your video will <span>land here.</span></h1>
+      <p>Direct by vibe. Describe a story and the Director scopes it into scenes and shots — you refine each one, then export the full timeline.</p>
+      <div class="big">
+        <textarea id="landInput" placeholder="A neon-soaked detective walks through rain-slicked Tokyo streets at midnight, searching for someone…"></textarea>
+        <div class="row">
+          <select id="landAspect" class="chip"><option>16:9</option><option>9:16</option><option>1:1</option></select>
+          <span class="hint" style="margin-right:auto;color:var(--mut2)">The Director writes a script + cast first — you approve before anything renders.</span>
+          <button class="mic" id="landMic" title="Dictate by voice">🎤</button>
+          <button class="btn-pri" id="landGo">Develop story →</button>
+        </div>
+      </div>
+      <div class="examples" id="examples"></div>
+    </div>
+
+    <!-- Workspace -->
+    <div class="stage-h hide" id="stageH">
+      <span class="meta" id="stageMeta">—</span>
+      <span class="est" id="est"></span>
+    </div>
+    <div class="stage-body hide" id="stageBody"></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const API = "/promptrelay/director";
+let S = { id:null, story:null, view:"story", aspect:"16:9", busy:false, engines:null };
+
+const $ = s => document.querySelector(s);
+const useLtx = () => !!($("#ltxChk") && $("#ltxChk").checked);  // off = fast ken-burns previews
+const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const esc = s => (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const aspectClass = a => a==="9:16"?"a916":a==="1:1"?"a11":"";
+
+function toast(m){const t=$("#toast");t.innerHTML="";const d=el("div","toast",esc(m));t.appendChild(d);
+  setTimeout(()=>d.remove(),2600);}
+
+/* ---- chat helpers ---- */
+function addMsg(role,text){
+  const cls = role==="user"?"user":role==="thinking"?"think":role==="log"?"log":
+              role==="status"?"status":"ai";
+  const m = el("div","msg "+cls);
+  m.innerHTML = role==="ai" ? mdLite(text) : esc(text);
+  $("#chatScroll").appendChild(m);
+  $("#chatScroll").scrollTop = 1e9;
+  return m;
+}
+function mdLite(t){return esc(t).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/“|”/g,'"');}
+
+/* ---- SSE over POST ---- */
+async function stream(url, body, onEvent){
+  const res = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(body||{})});
+  const reader = res.body.getReader(); const dec = new TextDecoder(); let buf="";
+  while(true){
+    const {value,done} = await reader.read(); if(done) break;
+    buf += dec.decode(value,{stream:true});
+    let i; while((i=buf.indexOf("\n\n"))>=0){
+      const line = buf.slice(0,i); buf=buf.slice(i+2);
+      if(line.startsWith("data: ")){
+        try{ onEvent(JSON.parse(line.slice(6))); }catch(e){}
+      }
+    }
+  }
+}
+
+/* ---- event handling ---- */
+function handle(ev){
+  switch(ev.kind){
+    case "thinking": addMsg("thinking", ev.text); break;
+    case "status": addMsg("status", ev.text); break;
+    case "assistant": addMsg("ai", ev.text); break;
+    case "error": addMsg("ai", "⚠️ "+ev.text); toast(ev.text); break;
+    case "log": logToShot(ev.shot, ev.text); break;
+    case "script": applyState(); if(S.view!=="story"){S.view="story";syncViews();} break;
+    case "character": refresh().then(applyState); break;
+    case "plan": applyState(); break;
+    case "progress": setProgress(ev.done, ev.total, ev.text); break;
+    case "shot_status": setShotStatus(ev.shot, ev.status, ev.text); break;
+    case "shot_image": setShotMedia(ev.shot, "image", ev.url, ev.via); break;
+    case "shot_clip": setShotMedia(ev.shot, "clip", ev.url, ev.via); break;
+    case "final": onFinal(ev.url); break;
+  }
+}
+
+/* ---- create / load ---- */
+async function createStory(vision, aspect){
+  const r = await fetch(API+"/story",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({vision,aspect})});
+  const d = await r.json(); S.id=d.id; S.aspect=aspect;
+  history.replaceState(null,"",location.pathname+"?id="+d.id);
+}
+async function refresh(){
+  const r = await fetch(API+"/story/"+S.id); S.story = await r.json();
+}
+async function loadEngines(){
+  try{ S.engines = await (await fetch(API+"/engines")).json(); }catch(e){}
+}
+
+/* ---- begin: scope a vision ---- */
+async function begin(vision, aspect){
+  if(!vision.trim()) return;
+  S.busy = true; setBusy(true);
+  await createStory(vision, aspect);
+  enterWorkspace();
+  addMsg("user", vision);
+  await stream(API+"/scope/"+S.id,{vision}, handle);
+  await refresh(); applyState();
+  S.busy=false; setBusy(false);
+}
+
+/* ---- director chat turn ---- */
+async function sendChat(){
+  const t = $("#chatInput").value.trim(); if(!t||S.busy) return;
+  $("#chatInput").value="";
+  if(!S.id){ return begin(t, $("#aspect").value||"16:9"); }
+  S.busy=true; setBusy(true);
+  addMsg("user", t);
+  await stream(API+"/chat/"+S.id,{message:t,ltx:useLtx(),voice:true}, handle);
+  await refresh(); applyState();
+  S.busy=false; setBusy(false);
+}
+
+/* ---- render ---- */
+async function renderAll(){
+  if(!S.id||S.busy) return;
+  S.busy=true; setBusy(true);
+  addMsg("status", useLtx() ? "Rendering all shots (LTX — slow)…" : "Rendering all shots (fast preview)…");
+  await stream(API+"/render/"+S.id,{ltx:useLtx(),voice:true}, handle);
+  await refresh(); applyState();
+  S.busy=false; setBusy(false);
+}
+async function renderShot(shotId, reroll){
+  if(S.busy) return;
+  S.busy=true; setBusy(true);
+  await stream(API+"/shot/"+S.id+"/render",{shot_id:shotId,reroll:!!reroll,ltx:useLtx(),voice:true}, handle);
+  await refresh(); applyState();
+  S.busy=false; setBusy(false);
+}
+async function doExport(){
+  if(S.busy) return;
+  S.busy=true; setBusy(true);
+  addMsg("status","Exporting timeline…");
+  S.view="timeline"; syncViews();
+  await stream(API+"/export/"+S.id,{}, handle);
+  await refresh(); applyState();
+  S.busy=false; setBusy(false);
+}
+
+/* ---- shot edits ---- */
+async function saveShot(shotId, field, value){
+  await fetch(API+"/shot/"+S.id+"/update",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({shot_id:shotId,[field]:value})});
+}
+
+/* ---- live DOM updates during a stream ---- */
+function shotCard(id){ return document.querySelector('[data-shot="'+id+'"]'); }
+function setShotStatus(id,status,text){
+  const c = shotCard(id); if(!c) return;
+  const st = c.querySelector(".st"); if(st){st.className="st "+status; st.textContent=text? (status):status;}
+  const thumb = c.querySelector(".thumb");
+  if((status==="image"||status==="clip") && thumb && !thumb.dataset.media){
+    thumb.innerHTML=""; thumb.appendChild(el("div","spin"));
+  }
+}
+function setShotMedia(id,type,url,via){
+  const c = shotCard(id); if(!c) return;
+  const thumb = c.querySelector(".thumb"); thumb.dataset.media="1";
+  thumb.innerHTML="";
+  if(type==="clip"){
+    const v=el("video"); v.src=url+"?t="+Date.now(); v.muted=true; v.loop=true; v.playsInline=true;
+    v.autoplay=true; thumb.appendChild(v); v.play().catch(()=>{});
+  }else{
+    const im=el("img"); im.src=url+"?t="+Date.now(); thumb.appendChild(im);
+  }
+  thumb.appendChild(el("div","num","#"+(c.dataset.num||"")));
+  const tag = el("div","st "+(type==="clip"?"done":"image")); tag.textContent=via||type;
+  thumb.appendChild(tag);
+}
+function logToShot(id,text){ /* surface engine logs in the chat, lightly */
+  addMsg("log","shot "+ (shotNum(id)||"?") +" › "+text);
+}
+function shotNum(id){const c=shotCard(id);return c?c.dataset.num:null;}
+function setProgress(done,total,text){
+  let bar=$("#renderBar");
+  if(!bar){ const m=addMsg("status",text); m.id="renderMsg";
+    const p=el("div","progress",'<i></i>'); p.id="renderBar"; m.appendChild(p); bar=p; }
+  else { const msg=$("#renderMsg"); if(msg) msg.childNodes[0].nodeValue=text+" "; }
+  bar.querySelector("i").style.width = total? Math.round(done/total*100)+"%":"0";
+}
+
+/* ---- full re-render of the stage from state ---- */
+function applyState(){
+  const st=S.story; if(!st) return;
+  $("#storyName").value = st.title||"Untitled Story";
+  S.aspect = st.aspect||"16:9"; $("#aspect").value=S.aspect;
+  const c = st.counts||{};
+  const stageLbl = !st.approved && (st.stage==="script") ? "📝 awaiting approval · " : "";
+  $("#stageMeta").textContent = stageLbl +
+    `${c.cast||0} cast · ${c.scenes||0} scenes · ${c.shots||0} shots · ${c.clips||0} clips`;
+  renderEst();
+  $("#composerHint").textContent = (!st.approved && st.stage==="script")
+    ? 'Say “looks good” to build the storyboard — or describe changes'
+    : "Type @shot N to re-direct one shot";
+  $("#exportBtn").disabled = !(c.clips>0);
+  drawStage();
+}
+function renderEst(){
+  const e=S.engines||{}; const est=$("#est"); est.innerHTML="";
+  const mk=(lbl,val,real)=>{const s=el("span","eng"+(real?" real":""),lbl+": "+val);return s;};
+  est.appendChild(mk("img",e.image||"?",e.image==="comfyui"));
+  est.appendChild(mk("clip",e.clip||"?",e.clip==="ltx"));
+  est.appendChild(mk("face",e.swap||"none",e.swap==="flux-klein"));
+  est.appendChild(mk("voice",e.voice||"?",e.voice==="edge-tts"));
+}
+
+function drawStage(){
+  const body=$("#stageBody"); body.innerHTML="";
+  if(S.view==="story") return drawStory(body);
+  if(S.view==="timeline") return drawTimeline(body);
+  const grouped = S.view==="scene";
+  const ac = aspectClass(S.aspect);
+  if(grouped){
+    S.story.scenes.forEach((sc,si)=>{
+      const block=el("div","scene-block");
+      block.appendChild(el("h3","scene-title",
+        `${esc(sc.title)} <span class="n">${sc.shots.length} shots</span>`));
+      const g=el("div","grid");
+      sc.shots.forEach(sh=>g.appendChild(card(sh,ac)));
+      block.appendChild(g); body.appendChild(block);
+    });
+  }else{
+    const g=el("div","grid");
+    S.story.scenes.flatMap(s=>s.shots).forEach(sh=>g.appendChild(card(sh,ac)));
+    body.appendChild(g);
+  }
+}
+
+function drawStory(body){
+  const st=S.story;
+  const wrap=el("div","story-wrap");
+
+  // Approval gate (only before approved)
+  if(!st.approved){
+    const bar=el("div","approve-bar");
+    bar.innerHTML=`<div class="t"><h2>Review the treatment</h2>
+      <p>Check the script, world, and cast below. Approve to generate character sheets and build the storyboard.</p></div>`;
+    const btn=el("button","btn-pri","✓ Looks good — build storyboard");
+    btn.onclick=approve; bar.appendChild(btn);
+    wrap.appendChild(bar);
+  }
+
+  // Logline
+  if(st.logline){
+    const s=el("div","sec"); s.appendChild(el("h3",null,"Logline"));
+    s.appendChild(el("div","logline",esc(st.logline))); wrap.appendChild(s);
+  }
+
+  // World
+  const w=st.world||{};
+  const ws=el("div","sec"); ws.appendChild(el("h3",null,'World <span class="tag">the shared look, applied to every shot</span>'));
+  const wg=el("div","world-grid");
+  [["style","Style"],["setting","Setting"],["palette","Palette"]].forEach(([k,lbl])=>{
+    const f=el("div","fld"); f.innerHTML=`<label>${lbl}</label>`;
+    const inp=el("input"); inp.value=w[k]||""; inp.onchange=()=>saveWorld(k,inp.value);
+    f.appendChild(inp); wg.appendChild(f);
+  });
+  ws.appendChild(wg); wrap.appendChild(ws);
+
+  // Cast
+  const cs=el("div","sec");
+  cs.appendChild(el("h3",null,`Cast <span class="tag">locked descriptions keep characters consistent across shots</span>`));
+  const cg=el("div","cast-grid");
+  (st.cast||[]).forEach(ch=>cg.appendChild(castCard(ch)));
+  if(!(st.cast||[]).length) cg.appendChild(el("div",null,"<span style='color:var(--mut)'>No cast yet.</span>"));
+  cs.appendChild(cg); wrap.appendChild(cs);
+
+  // Script
+  if(st.script){
+    const sc=el("div","sec"); sc.appendChild(el("h3",null,"Script"));
+    const ta=el("textarea","scriptbox"); ta.value=st.script; ta.readOnly=true;
+    sc.appendChild(ta); wrap.appendChild(sc);
+  }
+  body.appendChild(wrap);
+}
+
+function castCard(ch){
+  const c=el("div","cast-card");
+  const ref=el("div","ref");
+  if(ch.ref_image){const im=el("img");im.src=mediaUrl(ch.ref_image);ref.appendChild(im);}
+  else ref.appendChild(el("div",null,"no sheet"));
+  const rb=el("button","regen", ch.ref_image?"↻ Re-roll":"▶ Generate");
+  rb.onclick=()=>regenChar(ch.id,rb); ref.appendChild(rb);
+  c.appendChild(ref);
+  const ci=el("div","ci");
+  const nm=el("input","nm"); nm.value=ch.name; nm.onchange=()=>saveChar(ch.id,"name",nm.value);
+  ci.appendChild(nm);
+  if(ch.role) ci.appendChild(el("div","role",esc(ch.role)));
+  const ds=el("textarea","desc"); ds.value=ch.description; ds.rows=3;
+  ds.onchange=()=>saveChar(ch.id,"description",ds.value);
+  ci.appendChild(ds);
+  c.appendChild(ci);
+  return c;
+}
+
+function castNames(ids){
+  const by={}; (S.story.cast||[]).forEach(c=>by[c.id]=c.name);
+  return (ids||[]).map(i=>by[i]).filter(Boolean);
+}
+
+async function approve(){
+  if(!S.id||S.busy) return;
+  S.busy=true; setBusy(true);
+  addMsg("status","Approved — generating character sheets + storyboard…");
+  await stream(API+"/approve/"+S.id,{}, handle);
+  await refresh(); S.view="shot"; syncViews(); applyState();
+  S.busy=false; setBusy(false);
+}
+async function regenChar(cid,btn){
+  if(S.busy) return; S.busy=true; setBusy(true);
+  if(btn){btn.textContent="…";}
+  await stream(API+"/character/"+S.id+"/ref",{char_id:cid}, handle);
+  await refresh(); applyState();
+  S.busy=false; setBusy(false);
+}
+async function saveChar(cid,field,value){
+  await fetch(API+"/character/"+S.id+"/update",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({char_id:cid,[field]:value})});
+}
+async function saveWorld(field,value){
+  await fetch(API+"/world/"+S.id,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({[field]:value})});
+}
+
+function card(sh,ac){
+  const c=el("div","card "+ac); c.dataset.shot=sh.id; c.dataset.num=sh.idx;
+  const thumb=el("div","thumb");
+  const media = sh.clip?{u:mediaUrl(sh.clip),t:"clip"}:sh.image?{u:mediaUrl(sh.image),t:"image"}:null;
+  if(media){ thumb.dataset.media="1";
+    if(media.t==="clip"){const v=el("video");v.src=media.u;v.muted=true;v.loop=true;v.autoplay=true;
+      v.playsInline=true;thumb.appendChild(v);}
+    else {const im=el("img");im.src=media.u;thumb.appendChild(im);}
+  } else { thumb.appendChild(el("div",null,"no preview")); }
+  thumb.appendChild(el("div","num","#"+sh.idx));
+  thumb.appendChild(el("div","st "+sh.status, sh.status));
+  c.appendChild(thumb);
+
+  const b=el("div","body");
+  const pr=el("textarea","pr"); pr.value=sh.prompt; pr.rows=2;
+  pr.addEventListener("change",()=>saveShot(sh.id,"prompt",pr.value));
+  b.appendChild(pr);
+  if(sh.dialogue) b.appendChild(el("div","dlg",'“'+esc(sh.dialogue)+'”'));
+  const names=castNames(sh.cast_ids);
+  if(names.length){const cc=el("div","cast-chips");
+    names.forEach(n=>cc.appendChild(el("span","cchip",esc(n))));b.appendChild(cc);}
+  const acts=el("div","acts");
+  const reBtn=el("button",null, sh.clip?"↻ Re-roll":"▶ Render");
+  reBtn.onclick=()=>{reBtn.classList.add("busy");reBtn.textContent="…";renderShot(sh.id,!!sh.clip);};
+  acts.appendChild(reBtn);
+  b.appendChild(acts);
+  c.appendChild(b);
+  return c;
+}
+
+function mediaUrl(f){ return API+"/media/"+S.id+"/"+f+"?t="+Date.now(); }
+
+function drawTimeline(body){
+  const final = S.story.final;
+  const prev=el("div","tl-prev");
+  if(final){ const v=el("video"); v.src=API+"/media/"+S.id+"/final.mp4?t="+Date.now();
+    v.controls=true; prev.appendChild(v); }
+  else prev.appendChild(el("div","tl-empty","Render shots, then Export to preview the full film here."));
+  body.appendChild(prev);
+
+  const track=el("div","tl-track");
+  S.story.scenes.flatMap(s=>s.shots).forEach(sh=>{
+    const cl=el("div","tl-clip"+(sh.clip?"":" empty"));
+    if(sh.clip){const v=el("video");v.src=mediaUrl(sh.clip);v.muted=true;
+      cl.onmouseenter=()=>v.play().catch(()=>{});cl.onmouseleave=()=>{v.pause();v.currentTime=0;};
+      cl.appendChild(v);}
+    else if(sh.image){const im=el("img");im.src=mediaUrl(sh.image);cl.appendChild(im);}
+    else cl.appendChild(el("div",null,"empty"));
+    cl.appendChild(el("div","n","#"+sh.idx));
+    track.appendChild(cl);
+  });
+  body.appendChild(track);
+}
+function onFinal(url){ if(S.view!=="timeline"){S.view="timeline";syncViews();} drawStage(); toast("Film exported!"); }
+
+/* ---- view + busy state ---- */
+function enterWorkspace(){
+  $("#land").classList.add("hide");
+  ["#views","#aspect","#ltxWrap","#renderAll","#exportBtn","#storyName","#stageH","#stageBody"]
+    .forEach(s=>$(s).classList.remove("hide"));
+  $("#composerHint").textContent="Type @shot N to re-direct one shot";
+}
+function syncViews(){
+  document.querySelectorAll("#views button").forEach(b=>b.classList.toggle("on",b.dataset.v===S.view));
+  drawStage();
+}
+function setBusy(b){
+  $("#chatSend").disabled=b; $("#renderAll").disabled=b;
+  $("#landGo").disabled=b;
+}
+
+/* ---- wire up ---- */
+const EXAMPLES=[
+  "A lone astronaut crossing a red desert at golden hour, melancholic, cinematic",
+  "Neon-noir detective in rainy Tokyo, midnight, moody",
+  "A cozy coffee shop morning, warm light, slice of life",
+  "Epic dragon flyover above misty mountains, fantasy, sweeping"
+];
+function initExamples(){
+  const wrap=$("#examples");
+  EXAMPLES.forEach(x=>{const b=el("button","ex",esc(x));
+    b.onclick=()=>{$("#landInput").value=x;$("#landInput").focus();};wrap.appendChild(b);});
+}
+
+/* ---- voice dictation (Web Speech API; secure on 127.0.0.1) ---- */
+function setupMic(btnId, taId){
+  const btn=$(btnId), ta=$(taId);
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ btn.classList.add("hide"); return; }
+  let rec=null, on=false, base="";
+  btn.onclick=()=>{
+    if(on){ rec && rec.stop(); return; }
+    rec = new SR(); rec.lang="en-US"; rec.interimResults=true; rec.continuous=true;
+    base = ta.value ? ta.value.replace(/\s+$/,"")+" " : "";
+    rec.onstart =()=>{ on=true; btn.classList.add("rec"); btn.textContent="⏺"; };
+    rec.onerror =e=>{ toast("Mic: "+(e.error==="not-allowed"?"allow microphone access":e.error||"error")); };
+    rec.onend   =()=>{ on=false; btn.classList.remove("rec"); btn.textContent="🎤"; ta.focus(); };
+    rec.onresult=e=>{ let txt=""; for(let i=0;i<e.results.length;i++) txt+=e.results[i][0].transcript;
+      ta.value = base + txt; };
+    try{ rec.start(); }catch(err){ toast("Mic unavailable"); }
+  };
+}
+setupMic("#landMic","#landInput");
+setupMic("#chatMic","#chatInput");
+
+$("#landGo").onclick=()=>begin($("#landInput").value, $("#landAspect").value);
+$("#landInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey))begin($("#landInput").value,$("#landAspect").value);});
+$("#chatSend").onclick=sendChat;
+$("#chatInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat();}});
+$("#renderAll").onclick=renderAll;
+$("#exportBtn").onclick=doExport;
+document.querySelectorAll("#views button").forEach(b=>b.onclick=()=>{S.view=b.dataset.v;syncViews();});
+$("#storyName").addEventListener("change",async()=>{ /* title is informational; persisted via re-scope */ });
+$("#aspect").addEventListener("change",async()=>{
+  S.aspect=$("#aspect").value;
+  await fetch(API+"/aspect/"+S.id,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({aspect:S.aspect})});
+  await refresh(); applyState();
+});
+
+/* ---- boot ---- */
+(async function(){
+  initExamples(); await loadEngines();
+  const id = new URLSearchParams(location.search).get("id");
+  if(id){ S.id=id; try{ await refresh(); enterWorkspace(); applyState();
+    if(S.story&&S.story.messages) S.story.messages.forEach(m=>addMsg(m.role==="user"?"user":"ai",m.content));
+  }catch(e){ toast("Could not load story"); } }
+})();
+</script>
+</body>
+</html>

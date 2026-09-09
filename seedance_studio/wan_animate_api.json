@@ -1,0 +1,322 @@
+{
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "1.png"
+    },
+    "_meta": {
+      "title": "Reference Image"
+    }
+  },
+  "19": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "filename_prefix": "video/ComfyUI",
+      "format": "auto",
+      "codec": "auto",
+      "video": ["383", 0]
+    }
+  },
+  "159": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 720
+    },
+    "_meta": {
+      "title": "Width"
+    }
+  },
+  "160": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 720
+    },
+    "_meta": {
+      "title": "Height"
+    }
+  },
+  "301": {
+    "class_type": "VHS_LoadVideo",
+    "inputs": {
+      "video": "wan22-animate-auto-character_replace-input.mp4",
+      "force_rate": 0,
+      "custom_width": 0,
+      "custom_height": 0,
+      "frame_load_cap": 0,
+      "skip_first_frames": 0,
+      "select_every_nth": 1,
+      "format": "AnimateDiff"
+    },
+    "_meta": {
+      "title": "Input Video"
+    }
+  },
+  "314": {
+    "class_type": "VHS_VideoInfo",
+    "inputs": {
+      "video_info": ["301", 3]
+    }
+  },
+  "349": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走",
+      "clip": ["371", 0]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "350": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "WanAnimate_relight_lora_fp16.safetensors",
+      "strength_model": 1,
+      "model": ["376", 0]
+    }
+  },
+  "351": {
+    "class_type": "CLIPVisionEncode",
+    "inputs": {
+      "crop": "none",
+      "clip_vision": ["373", 0],
+      "image": ["369", 0]
+    }
+  },
+  "355": {
+    "class_type": "DrawViTPose",
+    "inputs": {
+      "width": ["363", 0],
+      "height": ["363", 1],
+      "retarget_padding": 16,
+      "body_stick_width": -1,
+      "hand_stick_width": -1,
+      "draw_head": "True",
+      "pose_data": ["358", 0]
+    }
+  },
+  "358": {
+    "class_type": "PoseAndFaceDetection",
+    "inputs": {
+      "width": ["363", 0],
+      "height": ["363", 1],
+      "model": ["364", 0],
+      "images": ["362", 0]
+    }
+  },
+  "359": {
+    "class_type": "Sam2Segmentation",
+    "inputs": {
+      "keep_model_loaded": false,
+      "individual_objects": false,
+      "sam2_model": ["365", 0],
+      "image": ["362", 0],
+      "bboxes": ["358", 3]
+    }
+  },
+  "362": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": ["159", 0],
+      "height": ["160", 0],
+      "crop": "center",
+      "image": ["301", 0]
+    },
+    "_meta": {
+      "title": "Resize Input Video"
+    }
+  },
+  "363": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": ["362", 0]
+    }
+  },
+  "364": {
+    "class_type": "OnnxDetectionModelLoader",
+    "inputs": {
+      "vitpose_model": "vitpose-l-wholebody.onnx",
+      "yolo_model": "yolov10m.onnx",
+      "onnx_device": "CUDAExecutionProvider"
+    }
+  },
+  "365": {
+    "class_type": "DownloadAndLoadSAM2Model",
+    "inputs": {
+      "model": "sam2.1_hiera_base_plus.safetensors",
+      "segmentor": "video",
+      "device": "cuda",
+      "precision": "fp16"
+    }
+  },
+  "366": {
+    "class_type": "BlockifyMask",
+    "inputs": {
+      "block_size": 32,
+      "device": "cpu",
+      "masks": ["368", 0]
+    }
+  },
+  "367": {
+    "class_type": "DrawMaskOnImage",
+    "inputs": {
+      "color": "0, 0, 0",
+      "device": "cpu",
+      "image": ["362", 0],
+      "mask": ["366", 0]
+    }
+  },
+  "368": {
+    "class_type": "GrowMaskWithBlur",
+    "inputs": {
+      "expand": 10,
+      "incremental_expandrate": 0,
+      "tapered_corners": true,
+      "flip_input": false,
+      "blur_radius": 0,
+      "lerp_alpha": 1,
+      "decay_factor": 1,
+      "fill_holes": false,
+      "mask": ["359", 0]
+    }
+  },
+  "369": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": ["159", 0],
+      "height": ["160", 0],
+      "crop": "center",
+      "image": ["10", 0]
+    },
+    "_meta": {
+      "title": "Resize Reference Image"
+    }
+  },
+  "370": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "Wan2_2-Animate-14B_fp8_e4m3fn_scaled_KJ.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "371": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    }
+  },
+  "372": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    }
+  },
+  "373": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "clip_vision_h.safetensors"
+    }
+  },
+  "374": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "the person is dancing",
+      "clip": ["371", 0]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "375": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "shift": 8,
+      "model": ["350", 0]
+    }
+  },
+  "376": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+      "strength_model": 1,
+      "model": ["370", 0]
+    }
+  },
+  "377": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 281253459907758
+    },
+    "_meta": {
+      "title": "Seed"
+    }
+  },
+  "379": {
+    "class_type": "WanAnimateToVideo",
+    "inputs": {
+      "width": ["159", 0],
+      "height": ["160", 0],
+      "length": ["301", 1],
+      "batch_size": 1,
+      "continue_motion_max_frames": 5,
+      "video_frame_offset": 0,
+      "positive": ["374", 0],
+      "negative": ["349", 0],
+      "vae": ["372", 0],
+      "clip_vision_output": ["351", 0],
+      "reference_image": ["369", 0],
+      "face_video": ["358", 1],
+      "pose_video": ["355", 0],
+      "background_video": ["367", 0],
+      "character_mask": ["366", 0]
+    }
+  },
+  "380": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": ["377", 0],
+      "steps": 6,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": ["375", 0],
+      "positive": ["379", 0],
+      "negative": ["379", 1],
+      "latent_image": ["379", 2]
+    }
+  },
+  "381": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["384", 0],
+      "vae": ["372", 0]
+    }
+  },
+  "382": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "batch_index": ["379", 4],
+      "length": 4096,
+      "image": ["381", 0]
+    }
+  },
+  "383": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "fps": ["314", 0],
+      "images": ["382", 0]
+    }
+  },
+  "384": {
+    "class_type": "TrimVideoLatent",
+    "inputs": {
+      "trim_amount": ["379", 3],
+      "samples": ["380", 0]
+    }
+  }
+}

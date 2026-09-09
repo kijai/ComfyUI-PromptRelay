@@ -54,16 +54,28 @@ def _convert_to_latent_lengths(pixel_lengths, temporal_stride, latent_frames):
 
 
 def _encode_relay(model, clip, latent, global_prompt, local_prompts, segment_lengths, epsilon, relay_options=None):
-    for name, val in (("global_prompt", global_prompt),
-                      ("local_prompts", local_prompts),
-                      ("segment_lengths", segment_lengths)):
+    # segment_lengths is optional — treat None or whitespace-only as "auto-distribute"
+    if segment_lengths is None:
+        segment_lengths = ""
+
+    for name, val in (("model", model), ("clip", clip), ("latent", latent),
+                      ("global_prompt", global_prompt),
+                      ("local_prompts", local_prompts)):
         if val is None:
-            raise ValueError(
-                f"PromptRelay: '{name}' arrived as None. "
+            hints = {
+                "model": "Connect a WAN or LTX model loader to the 'model' input.",
+                "clip": (
+                    "Connect a CLIP loader to the 'clip' input. "
+                    "Make sure it is the WAN text encoder (T5), not an SDXL or SD1.5 CLIP."
+                ),
+                "latent": "Connect an empty latent video node to the 'latent' input.",
+            }
+            detail = hints.get(name,
                 "Likely causes: a stale workflow JSON saved with null, the timeline "
                 "editor's web extension failing to load, or an upstream node returning None. "
                 "Set the field to an empty string or fix the upstream connection."
             )
+            raise ValueError(f"PromptRelay: '{name}' is None. {detail}")
 
     locals_list = [p.strip() for p in local_prompts.split("|") if p.strip()]
     if not locals_list:
@@ -228,14 +240,108 @@ class PromptRelayEncodeTimeline(io.ComfyNode):
         return io.NodeOutput(patched, conditioning)
 
 
+class VideoFrameCalculator:
+    """
+    Converts seconds to the correct frame count for LTX or Wan video models.
+
+    LTX  requires frames = 8n + 1  (e.g. 241 for 10s at 24fps)
+    Wan  requires frames = 4n + 1  (e.g. 161 for 10s at 16fps)
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "seconds": ("FLOAT", {
+                    "default": 10.0, "min": 0.1, "max": 120.0, "step": 0.5,
+                    "tooltip": "Desired video duration in seconds. Type directly: 10, 20, 30 etc.",
+                }),
+                "model_type": (["LTX (24fps, 8n+1)", "Wan (16fps, 4n+1)"], {
+                    "tooltip": "Choose the model to calculate the correct frame count.",
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("INT", "INT", "FLOAT")
+    RETURN_NAMES = ("frames", "seconds_actual", "fps")
+    CATEGORY = "video/utils"
+    FUNCTION = "calculate"
+    DESCRIPTION = (
+        "Converts seconds to the nearest valid frame count for LTX or Wan models. "
+        "LTX uses 8n+1 frames at 24fps. Wan uses 4n+1 frames at 16fps."
+    )
+
+    def calculate(self, seconds, model_type):
+        if model_type.startswith("LTX"):
+            fps = 24.0
+            step = 8
+        else:
+            fps = 16.0
+            step = 4
+
+        raw = seconds * fps
+        n = max(1, round((raw - 1) / step))
+        frames = n * step + 1
+        actual_seconds = round((frames - 1) / fps, 2)
+
+        log.info(
+            "[VideoFrameCalculator] %s: %.1fs → %d frames (%.2fs actual @ %.0ffps)",
+            model_type, seconds, frames, actual_seconds, fps,
+        )
+
+        return (frames, actual_seconds, fps)
+
+
+STYLE_PRESETS = {
+    "Studio Ghibli Anime":       "Studio Ghibli anime style, soft watercolor, vibrant colors, smooth natural motion, high quality animation, detailed",
+    "3D Pixar Cartoon":          "3D Pixar cartoon style, vibrant colors, smooth animation, high quality render, professional lighting, detailed textures",
+    "Comic Book":                "Comic book style, bold outlines, flat colors, dynamic motion, high contrast, illustrated, graphic novel",
+    "Oil Painting Impressionist":"Oil painting impressionist style, textured brushstrokes, rich colors, smooth motion, artistic, painterly",
+    "Cyberpunk Neon":            "Cyberpunk neon style, dark atmosphere, glowing lights, smooth motion, cinematic, futuristic, high quality",
+}
+
+
+class StyleSelector:
+    """
+    Dropdown selector for video restyle art styles.
+    Pick a style from the list and wire the STRING output
+    directly into the Positive Prompt clip text encode node.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "style": (list(STYLE_PRESETS.keys()), {
+                    "tooltip": "Select an art style to apply to your video.",
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("style_prompt",)
+    CATEGORY = "video/utils"
+    FUNCTION = "select"
+    DESCRIPTION = "Select an art style from the dropdown. Wire the output into your Positive Prompt text node."
+
+    def select(self, style):
+        prompt = STYLE_PRESETS[style]
+        log.info("[StyleSelector] Selected: %s → %s", style, prompt)
+        return (prompt,)
+
+
 NODE_CLASS_MAPPINGS = {
     "PromptRelayEncode": PromptRelayEncode,
     "PromptRelayEncodeTimeline": PromptRelayEncodeTimeline,
     "PromptRelayAdvancedOptions": PromptRelayAdvancedOptions,
+    "VideoFrameCalculator": VideoFrameCalculator,
+    "StyleSelector": StyleSelector,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "PromptRelayEncode": "Prompt Relay Encode",
     "PromptRelayEncodeTimeline": "Prompt Relay Encode (Timeline)",
     "PromptRelayAdvancedOptions": "Prompt Relay Advanced Options",
+    "VideoFrameCalculator": "Video Frame Calculator (Seconds → Frames)",
+    "StyleSelector": "Style Selector 🎨",
 }

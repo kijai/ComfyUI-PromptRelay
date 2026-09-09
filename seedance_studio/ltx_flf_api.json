@@ -1,0 +1,1050 @@
+{
+ "1": {
+  "inputs": {
+   "sampler_name": "euler_ancestral_cfg_pp"
+  },
+  "class_type": "KSamplerSelect",
+  "_meta": {
+   "title": "KSamplerSelect"
+  }
+ },
+ "2": {
+  "inputs": {
+   "steps": 8,
+   "max_shift": 2.05,
+   "base_shift": 0.95,
+   "stretch": true,
+   "terminal": 0.1,
+   "latent": [
+    "24",
+    0
+   ]
+  },
+  "class_type": "LTXVScheduler",
+  "_meta": {
+   "title": "LTXVScheduler (for more steps)"
+  }
+ },
+ "4": {
+  "inputs": {
+   "sampler_name": "euler_cfg_pp"
+  },
+  "class_type": "KSamplerSelect",
+  "_meta": {
+   "title": "KSamplerSelect"
+  }
+ },
+ "5": {
+  "inputs": {
+   "sigmas": "0.909375, 0.725, 0.421875, 0.0"
+  },
+  "class_type": "ManualSigmas",
+  "_meta": {
+   "title": "ManualSigmas (LTX-2)"
+  }
+ },
+ "8": {
+  "inputs": {
+   "cfg": 1.0,
+   "model": [
+    "197",
+    0
+   ],
+   "positive": [
+    "10",
+    0
+   ],
+   "negative": [
+    "10",
+    1
+   ]
+  },
+  "class_type": "CFGGuider",
+  "_meta": {
+   "title": "CFGGuider"
+  }
+ },
+ "9": {
+  "inputs": {
+   "frames_number": [
+    "2077",
+    1
+   ],
+   "frame_rate": [
+    "92",
+    1
+   ],
+   "batch_size": 1,
+   "audio_vae": [
+    "175",
+    0
+   ]
+  },
+  "class_type": "LTXVEmptyLatentAudio",
+  "_meta": {
+   "title": "LTXV Empty Latent Audio"
+  }
+ },
+ "10": {
+  "inputs": {
+   "frame_rate": [
+    "2076",
+    0
+   ],
+   "positive": [
+    "16",
+    0
+   ],
+   "negative": [
+    "11",
+    0
+   ]
+  },
+  "class_type": "LTXVConditioning",
+  "_meta": {
+   "title": "LTXVConditioning"
+  }
+ },
+ "11": {
+  "inputs": {
+   "text": "blurry, oversaturated, pixelated, low resolution, grainy, distorted, noise, compression artifacts, jpeg artifacts, glitches, watermark, text, logo, signature, copyright, subtitles, distorted sound, saturated sound, loud",
+   "\ud83d\uddd1 Clear": null,
+   "clip": [
+    "189",
+    0
+   ]
+  },
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "CLIP Text Encode (Prompt)"
+  }
+ },
+ "13": {
+  "inputs": {
+   "noise": [
+    "15",
+    0
+   ],
+   "guider": [
+    "36",
+    0
+   ],
+   "sampler": [
+    "1",
+    0
+   ],
+   "sigmas": [
+    "215",
+    0
+   ],
+   "latent_image": [
+    "24",
+    0
+   ]
+  },
+  "class_type": "SamplerCustomAdvanced",
+  "_meta": {
+   "title": "SamplerCustomAdvanced"
+  }
+ },
+ "14": {
+  "inputs": {
+   "noise_seed": 43
+  },
+  "class_type": "RandomNoise",
+  "_meta": {
+   "title": "RandomNoise"
+  }
+ },
+ "15": {
+  "inputs": {
+   "noise_seed": 42
+  },
+  "class_type": "RandomNoise",
+  "_meta": {
+   "title": "RandomNoise"
+  }
+ },
+ "16": {
+  "inputs": {
+   "text": [
+    "2103",
+    0
+   ],
+   "\ud83d\uddd1 Clear": null,
+   "clip": [
+    "189",
+    0
+   ]
+  },
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "CLIP Text Encode (Prompt)"
+  }
+ },
+ "18": {
+  "inputs": {
+   "av_latent": [
+    "13",
+    0
+   ]
+  },
+  "class_type": "LTXVSeparateAVLatent",
+  "_meta": {
+   "title": "LTXVSeparateAVLatent"
+  }
+ },
+ "21": {
+  "inputs": {
+   "noise": [
+    "14",
+    0
+   ],
+   "guider": [
+    "8",
+    0
+   ],
+   "sampler": [
+    "4",
+    0
+   ],
+   "sigmas": [
+    "216",
+    0
+   ],
+   "latent_image": [
+    "34",
+    0
+   ]
+  },
+  "class_type": "SamplerCustomAdvanced",
+  "_meta": {
+   "title": "SamplerCustomAdvanced"
+  }
+ },
+ "24": {
+  "inputs": {
+   "video_latent": [
+    "210",
+    0
+   ],
+   "audio_latent": [
+    "9",
+    0
+   ]
+  },
+  "class_type": "LTXVConcatAVLatent",
+  "_meta": {
+   "title": "LTXVConcatAVLatent"
+  }
+ },
+ "25": {
+  "inputs": {
+   "samples": [
+    "18",
+    0
+   ],
+   "upscale_model": [
+    "182",
+    0
+   ],
+   "vae": [
+    "181",
+    0
+   ]
+  },
+  "class_type": "LTXVLatentUpsampler",
+  "_meta": {
+   "title": "spatial"
+  }
+ },
+ "26": {
+  "inputs": {
+   "upscale_method": "lanczos",
+   "scale_by": 0.5,
+   "image": [
+    "44",
+    0
+   ]
+  },
+  "class_type": "ImageScaleBy",
+  "_meta": {
+   "title": "Upscale Image By"
+  }
+ },
+ "28": {
+  "inputs": {
+   "image": [
+    "26",
+    0
+   ]
+  },
+  "class_type": "GetImageSize",
+  "_meta": {
+   "title": "Get Image Size"
+  }
+ },
+ "32": {
+  "inputs": {
+   "width": [
+    "28",
+    0
+   ],
+   "height": [
+    "28",
+    1
+   ],
+   "length": [
+    "2077",
+    1
+   ],
+   "batch_size": 1
+  },
+  "class_type": "EmptyLTXVLatentVideo",
+  "_meta": {
+   "title": "EmptyLTXVLatentVideo"
+  }
+ },
+ "34": {
+  "inputs": {
+   "video_latent": [
+    "2152",
+    2
+   ],
+   "audio_latent": [
+    "18",
+    1
+   ]
+  },
+  "class_type": "LTXVConcatAVLatent",
+  "_meta": {
+   "title": "LTXVConcatAVLatent"
+  }
+ },
+ "36": {
+  "inputs": {
+   "cfg": 1.0,
+   "model": [
+    "197",
+    0
+   ],
+   "positive": [
+    "10",
+    0
+   ],
+   "negative": [
+    "10",
+    1
+   ]
+  },
+  "class_type": "CFGGuider",
+  "_meta": {
+   "title": "CFGGuider"
+  }
+ },
+ "43": {
+  "inputs": {
+   "frame_rate": [
+    "2076",
+    0
+   ],
+   "loop_count": 0,
+   "filename_prefix": "LTX-2",
+   "format": "video/h264-mp4",
+   "pix_fmt": "yuv420p",
+   "crf": 19,
+   "save_metadata": true,
+   "trim_to_audio": false,
+   "pingpong": false,
+   "save_output": true,
+   "images": [
+    "149",
+    0
+   ],
+   "audio": [
+    "150",
+    0
+   ]
+  },
+  "class_type": "VHS_VideoCombine",
+  "_meta": {
+   "title": "Video Combine \ud83c\udfa5\ud83c\udd65\ud83c\udd57\ud83c\udd62"
+  }
+ },
+ "44": {
+  "inputs": {
+   "width": [
+    "2080",
+    0
+   ],
+   "height": [
+    "2079",
+    0
+   ],
+   "upscale_method": "nearest-exact",
+   "keep_proportion": "crop",
+   "pad_color": "0, 0, 0",
+   "crop_position": "center",
+   "divisible_by": 32,
+   "device": "cpu",
+   "image": [
+    "45",
+    0
+   ]
+  },
+  "class_type": "ImageResizeKJv2",
+  "_meta": {
+   "title": "Resize Image v2"
+  }
+ },
+ "45": {
+  "inputs": {
+   "image": "videoframe_1302.png"
+  },
+  "class_type": "LoadImage",
+  "_meta": {
+   "title": "FIRST FRAME"
+  }
+ },
+ "47": {
+  "inputs": {
+   "image": "videoframe_2631.png"
+  },
+  "class_type": "LoadImage",
+  "_meta": {
+   "title": "LAST FRAME"
+  }
+ },
+ "48": {
+  "inputs": {
+   "width": [
+    "44",
+    1
+   ],
+   "height": [
+    "44",
+    2
+   ],
+   "upscale_method": "nearest-exact",
+   "keep_proportion": "crop",
+   "pad_color": "0, 0, 0",
+   "crop_position": "center",
+   "divisible_by": 32,
+   "device": "cpu",
+   "image": [
+    "47",
+    0
+   ]
+  },
+  "class_type": "ImageResizeKJv2",
+  "_meta": {
+   "title": "Resize Image v2"
+  }
+ },
+ "49": {
+  "inputs": {
+   "longer_edge": 1536,
+   "images": [
+    "48",
+    0
+   ]
+  },
+  "class_type": "ResizeImagesByLongerEdge",
+  "_meta": {
+   "title": "Resize Images by Longer Edge"
+  }
+ },
+ "50": {
+  "inputs": {
+   "img_compression": 18,
+   "image": [
+    "48",
+    0
+   ]
+  },
+  "class_type": "LTXVPreprocess",
+  "_meta": {
+   "title": "LTXVPreprocess"
+  }
+ },
+ "92": {
+  "inputs": {
+   "expression": "a",
+   "a": [
+    "2076",
+    0
+   ]
+  },
+  "class_type": "SimpleCalculatorKJ",
+  "_meta": {
+   "title": "SimpleCalculatorKJ"
+  }
+ },
+ "146": {
+  "inputs": {
+   "av_latent": [
+    "21",
+    0
+   ]
+  },
+  "class_type": "LTXVSeparateAVLatent",
+  "_meta": {
+   "title": "LTXVSeparateAVLatent"
+  }
+ },
+ "149": {
+  "inputs": {
+   "tile_size": 512,
+   "overlap": 64,
+   "temporal_size": 4096,
+   "temporal_overlap": 8,
+   "samples": [
+    "2156",
+    2
+   ],
+   "vae": [
+    "181",
+    0
+   ]
+  },
+  "class_type": "VAEDecodeTiled",
+  "_meta": {
+   "title": "VAE Decode (Tiled)"
+  }
+ },
+ "150": {
+  "inputs": {
+   "samples": [
+    "146",
+    1
+   ],
+   "audio_vae": [
+    "175",
+    0
+   ]
+  },
+  "class_type": "LTXVAudioVAEDecode",
+  "_meta": {
+   "title": "LTXV Audio VAE Decode"
+  }
+ },
+ "175": {
+  "inputs": {
+   "vae_name": "LTX23_audio_vae_bf16.safetensors",
+   "device": "main_device",
+   "weight_dtype": "bf16"
+  },
+  "class_type": "VAELoaderKJ",
+  "_meta": {
+   "title": "VAELoader KJ"
+  }
+ },
+ "180": {
+  "inputs": {
+   "vae_name": "vae_approx\\taeltx2_3.safetensors"
+  },
+  "class_type": "VAELoader",
+  "_meta": {
+   "title": "Load VAE"
+  }
+ },
+ "181": {
+  "inputs": {
+   "vae_name": "LTX23_video_vae_bf16.safetensors"
+  },
+  "class_type": "VAELoader",
+  "_meta": {
+   "title": "Load VAE"
+  }
+ },
+ "182": {
+  "inputs": {
+   "model_name": "ltx-2.3-spatial-upscaler-x2-1.1.safetensors"
+  },
+  "class_type": "LatentUpscaleModelLoader",
+  "_meta": {
+   "title": "Load Latent Upscale Model"
+  }
+ },
+ "189": {
+  "inputs": {
+   "clip_name1": "gemma-3-12b-it-Q4_K_M.gguf",
+   "clip_name2": "ltx-2.3_text_projection_bf16.safetensors",
+   "type": "ltxv"
+  },
+  "class_type": "DualCLIPLoaderGGUF",
+  "_meta": {
+   "title": "DualCLIPLoader (GGUF)"
+  }
+ },
+ "191": {
+  "inputs": {
+   "unet_name": "LTX-2.3-22B-distilled-1.1-Q6_K.gguf"
+  },
+  "class_type": "UnetLoaderGGUF",
+  "_meta": {
+   "title": "Unet Loader (GGUF)"
+  }
+ },
+ "197": {
+  "inputs": {
+   "nag_scale": 11.0,
+   "nag_alpha": 0.25,
+   "nag_tau": 2.5,
+   "inplace": true,
+   "model": [
+    "198",
+    0
+   ],
+   "nag_cond_video": [
+    "10",
+    1
+   ],
+   "nag_cond_audio": [
+    "10",
+    1
+   ]
+  },
+  "class_type": "LTX2_NAG",
+  "_meta": {
+   "title": "LTX2 NAG"
+  }
+ },
+ "198": {
+  "inputs": {
+   "preview_rate": 8,
+   "model": [
+    "2107",
+    0
+   ],
+   "vae": [
+    "180",
+    0
+   ]
+  },
+  "class_type": "LTX2SamplingPreviewOverride",
+  "_meta": {
+   "title": "LTX2 Sampling Preview Override"
+  }
+ },
+ "210": {
+  "inputs": {
+   "num_images": "2",
+   "num_images.strength_1": 0.7,
+   "num_images.strength_2": 0.7,
+   "num_images.index_1": 0,
+   "num_images.index_2": -1,
+   "vae": [
+    "181",
+    0
+   ],
+   "latent": [
+    "32",
+    0
+   ],
+   "num_images.image_1": [
+    "2084",
+    0
+   ],
+   "num_images.image_2": [
+    "50",
+    0
+   ]
+  },
+  "class_type": "LTXVImgToVideoInplaceKJ",
+  "_meta": {
+   "title": "LTXVImgToVideoInplaceKJ"
+  }
+ },
+ "215": {
+  "inputs": {
+   "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0"
+  },
+  "class_type": "ManualSigmas",
+  "_meta": {
+   "title": "ManualSigmas"
+  }
+ },
+ "216": {
+  "inputs": {
+   "sigmas": "0.85, 0.7250, 0.4219, 0.0"
+  },
+  "class_type": "ManualSigmas",
+  "_meta": {
+   "title": "ManualSigmas"
+  }
+ },
+ "2071": {
+  "inputs": {},
+  "class_type": "PreviewAny",
+  "_meta": {
+   "title": "ENHANCED PROMPT"
+  }
+ },
+ "2076": {
+  "inputs": {
+   "value": 24.0
+  },
+  "class_type": "PrimitiveFloat",
+  "_meta": {
+   "title": "FPS"
+  }
+ },
+ "2077": {
+  "inputs": {
+   "expression": "((round((a * b -1) / 8)) * 8) + 1 ",
+   "a": [
+    "2078",
+    0
+   ],
+   "b": [
+    "2076",
+    0
+   ]
+  },
+  "class_type": "SimpleCalculatorKJ",
+  "_meta": {
+   "title": "SimpleCalculatorKJ"
+  }
+ },
+ "2078": {
+  "inputs": {
+   "value": 6
+  },
+  "class_type": "INTConstant",
+  "_meta": {
+   "title": "LENGTH (in seconds)"
+  }
+ },
+ "2079": {
+  "inputs": {
+   "value": 1080
+  },
+  "class_type": "INTConstant",
+  "_meta": {
+   "title": "HEIGHT"
+  }
+ },
+ "2080": {
+  "inputs": {
+   "value": 1920
+  },
+  "class_type": "INTConstant",
+  "_meta": {
+   "title": "WIDTH"
+  }
+ },
+ "2082": {
+  "inputs": {
+   "value": false
+  },
+  "class_type": "PrimitiveBoolean",
+  "_meta": {
+   "title": "ENABLE PROMPT ENHANCER"
+  }
+ },
+ "2083": {
+  "inputs": {
+   "longer_edge": 1536,
+   "images": [
+    "44",
+    0
+   ]
+  },
+  "class_type": "ResizeImagesByLongerEdge",
+  "_meta": {
+   "title": "Resize Images by Longer Edge"
+  }
+ },
+ "2084": {
+  "inputs": {
+   "img_compression": 18,
+   "image": [
+    "2083",
+    0
+   ]
+  },
+  "class_type": "LTXVPreprocess",
+  "_meta": {
+   "title": "LTXVPreprocess"
+  }
+ },
+ "2103": {
+  "inputs": {
+   "value": "the woman is getting fucked from behind nicely, as she is enjoying his hard cock thrusting her from behind",
+   "\ud83d\uddd1 Clear": null
+  },
+  "class_type": "PrimitiveStringMultiline",
+  "_meta": {
+   "title": "PROMPT"
+  }
+ },
+ "2105": {
+  "inputs": {
+   "num_images": "1",
+   "num_images.strength_1": [
+    "2110",
+    0
+   ],
+   "num_images.index_1": 0,
+   "vae": [
+    "181",
+    0
+   ],
+   "latent": [
+    "25",
+    0
+   ],
+   "num_images.image_1": [
+    "2083",
+    0
+   ]
+  },
+  "class_type": "LTXVImgToVideoInplaceKJ",
+  "_meta": {
+   "title": "LTXVImgToVideoInplaceKJ"
+  }
+ },
+ "2107": {
+  "inputs": {
+   "PowerLoraLoaderHeaderWidget": {
+    "type": "PowerLoraLoaderHeaderWidget"
+   },
+   "\u2795 Add Lora": "",
+   "model": [
+    "191",
+    0
+   ]
+  },
+  "class_type": "Power Lora Loader (rgthree)",
+  "_meta": {
+   "title": "Power Lora Loader (rgthree)"
+  }
+ },
+ "2108": {
+  "inputs": {
+   "value": 1.0
+  },
+  "class_type": "PrimitiveFloat",
+  "_meta": {
+   "title": "LAST FRAME STRENGTH"
+  }
+ },
+ "2110": {
+  "inputs": {
+   "value": 0.5
+  },
+  "class_type": "PrimitiveFloat",
+  "_meta": {
+   "title": "FIRST FRAME STRENGTH"
+  }
+ },
+ "2152": {
+  "inputs": {
+   "frame_idx": -1,
+   "strength": [
+    "2108",
+    0
+   ],
+   "positive": [
+    "10",
+    0
+   ],
+   "negative": [
+    "10",
+    1
+   ],
+   "vae": [
+    "181",
+    0
+   ],
+   "latent": [
+    "2105",
+    0
+   ],
+   "image": [
+    "49",
+    0
+   ]
+  },
+  "class_type": "LTXVAddGuide",
+  "_meta": {
+   "title": "LTXVAddGuide"
+  }
+ },
+ "2156": {
+  "inputs": {
+   "positive": [
+    "2152",
+    0
+   ],
+   "negative": [
+    "2152",
+    1
+   ],
+   "latent": [
+    "146",
+    0
+   ]
+  },
+  "class_type": "LTXVCropGuides",
+  "_meta": {
+   "title": "LTXVCropGuides"
+  }
+ },
+ "2102:2092": {
+  "inputs": {
+   "resize_type": "scale by multiplier",
+   "resize_type.multiplier": 0.2,
+   "scale_method": "area",
+   "input": [
+    "49",
+    0
+   ]
+  },
+  "class_type": "ResizeImageMaskNode",
+  "_meta": {
+   "title": "Resize Image/Mask"
+  }
+ },
+ "2102:2099": {
+  "inputs": {
+   "resize_type": "scale by multiplier",
+   "resize_type.multiplier": 0.2,
+   "scale_method": "area",
+   "input": [
+    "2083",
+    0
+   ]
+  },
+  "class_type": "ResizeImageMaskNode",
+  "_meta": {
+   "title": "Resize Image/Mask"
+  }
+ },
+ "2102:2100": {
+  "inputs": {
+   "left": 16,
+   "top": 16,
+   "right": 16,
+   "bottom": 16,
+   "feathering": 0,
+   "image": [
+    "2102:2099",
+    0
+   ]
+  },
+  "class_type": "ImagePadForOutpaint",
+  "_meta": {
+   "title": "Pad Image for Outpainting"
+  }
+ },
+ "2102:2098": {
+  "inputs": {
+   "left": 16,
+   "top": 16,
+   "right": 16,
+   "bottom": 16,
+   "feathering": 0,
+   "image": [
+    "2102:2092",
+    0
+   ]
+  },
+  "class_type": "ImagePadForOutpaint",
+  "_meta": {
+   "title": "Pad Image for Outpainting"
+  }
+ },
+ "2102:2085": {
+  "inputs": {
+   "direction": "right",
+   "match_image_size": true,
+   "spacing_width": 0,
+   "spacing_color": "white",
+   "image1": [
+    "2102:2100",
+    0
+   ],
+   "image2": [
+    "2102:2098",
+    0
+   ]
+  },
+  "class_type": "ImageStitch",
+  "_meta": {
+   "title": "Image Stitch"
+  }
+ },
+ "2070:482": {
+  "inputs": {
+   "string_a": [
+    "2070:484",
+    0
+   ],
+   "string_b": [
+    "2103",
+    0
+   ],
+   "delimiter": ""
+  },
+  "class_type": "StringConcatenate",
+  "_meta": {
+   "title": "Text Concatenate"
+  }
+ },
+ "2070:2002": {
+  "inputs": {
+   "switch": [
+    "2082",
+    0
+   ],
+   "on_false": [
+    "2103",
+    0
+   ],
+   "on_true": [
+    "2070:485",
+    0
+   ]
+  },
+  "class_type": "ComfySwitchNode",
+  "_meta": {
+   "title": "Switch"
+  }
+ },
+ "2070:485": {
+  "inputs": {
+   "prompt": [
+    "2070:482",
+    0
+   ],
+   "max_length": 256,
+   "sampling_mode": "off",
+   "thinking": false,
+   "use_default_template": true,
+   "clip": [
+    "189",
+    0
+   ],
+   "image": [
+    "2102:2085",
+    0
+   ]
+  },
+  "class_type": "TextGenerateLTX2Prompt",
+  "_meta": {
+   "title": "TextGenerateLTX2Prompt"
+  }
+ },
+ "2070:484": {
+  "inputs": {
+   "value": "You are a Creative Assistant writing concise, action-focused image-to-video prompts. Given an image (first frame) and user Raw Input Prompt, generate a prompt to guide video generation from that image.   \n\nMAIN GOAL: \nCREATE AN INTERESTING PROMPT WHERE THE START FRAME IS THE IMAGE TO THE LEFT, AND END FRAME IS THE IMAGE TO THE RIGHT\n\n#### Guidelines:\n- Analyze the Image: Identify Subject, Setting, Elements, Style and Mood.\n- Follow user Raw Input Prompt: Include all requested motion, actions, camera movements, audio, and details. If in conflict with the image, prioritize user request while maintaining visual consistency (describe transition from image to user's scene).\n- Describe only changes from the image: Don't reiterate established visual details. Inaccurate descriptions may cause scene cuts.\n- Active language: Use present-progressive verbs (\"is walking,\" \"speaking\"). If no action specified, describe natural movements.\n- Chronological flow: Use temporal connectors (\"as,\" \"then,\" \"while\").\n- Audio layer: Describe complete soundscape throughout the prompt alongside actions\u2014NOT at the end. Align audio intensity with action tempo. Include natural background audio, ambient sounds, effects, speech or music (when requested). Be specific (e.g., \"soft footsteps on tile\") not vague (e.g., \"ambient sound\").\n- Speech (only when requested): Provide exact words in quotes with character's visual/voice characteristics (e.g., \"The tall man speaks in a low, gravelly voice\"), language if not English and accent if relevant. If general conversation mentioned without text, generate contextual quoted dialogue. (i.e., \"The man is talking\" input -> the output should include exact spoken words, like: \"The man is talking in an excited voice saying: 'You won't believe what I just saw!' His hands gesture expressively as he speaks, eyebrows raised with enthusiasm. The ambient sound of a quiet room underscores his animated speech.\")\n- Style: Include visual style at beginning: \"Style: <style>, <rest of prompt>.\" If unclear, omit to avoid conflicts.\n- Visual and audio only: Describe only what is seen and heard. NO smell, taste, or tactile sensations.\n- Restrained language: Avoid dramatic terms. Use mild, natural, understated phrasing.\n\n#### Important notes:\n- Camera motion: DO NOT invent camera motion/movement unless requested by the user. Make sure to include camera motion only if specified in the input.\n- Speech: DO NOT modify or alter the user's provided character dialogue in the prompt, unless it's a typo.\n- No timestamps or cuts: DO NOT use timestamps or describe scene cuts unless explicitly requested.\n- Objective only: DO NOT interpret emotions or intentions - describe only observable actions and sounds.\n- Format: DO NOT use phrases like \"The scene opens with...\" / \"The video starts...\". Start directly with Style (optional) and chronological scene description.\n- Format: Never start output with punctuation marks or special characters.\n- DO NOT invent dialogue unless the user mentions speech/talking/singing/conversation.\n- Your performance is CRITICAL. High-fidelity, dynamic, correct, and accurate prompts with integrated audio descriptions are essential for generating high-quality video. Your goal is flawless execution of these rules.\n\n#### Output Format (Strict):\n- Single concise paragraph in natural English. NO titles, headings, prefaces, sections, code fences, or Markdown.\n- If unsafe/invalid, return original user prompt. Never ask questions or clarifications.\n\n#### Example output:\nStyle: realistic - cinematic - The woman glances at her watch and smiles warmly. She speaks in a cheerful, friendly voice, \"I think we're right on time!\" In the background, a caf\u00e9 barista prepares drinks at the counter. The barista calls out in a clear, upbeat tone, \"Two cappuccinos ready!\" The sound of the espresso machine hissing softly blends with gentle background chatter and the light clinking of cups on saucers. \n\nUSER PROMPT BELOW: \n___________________________________________________",
+   "\ud83d\uddd1 Clear": null
+  },
+  "class_type": "PrimitiveStringMultiline",
+  "_meta": {
+   "title": "LTX-2 PROMPT INSTRUCT"
+  }
+ }
+}

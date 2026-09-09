@@ -1,0 +1,27 @@
+{
+  "channel_id": "lena",
+  "display_name": "Lena",
+  "tagline": "TBD - niche/positioning not decided yet",
+  "niche": "TBD",
+  "format": "TBD",
+  "character": {
+    "name": "Lena",
+    "trigger": "Lena",
+    "lora": "lena_klein4b_v1.safetensors",
+    "lora_strength": 1.0,
+    "base_model": "flux-2-klein-4b-fp8.safetensors",
+    "text_encoder": "qwen_3_4b.safetensors",
+    "vae": "flux2-vae.safetensors",
+    "reference_face": "reference/lena_ref_face.png",
+    "reference_fullbody": "reference/lena_ref_fullbody.png"
+  },
+  "brand_voice": "TBD",
+  "visual_style": "TBD",
+  "voice": {},
+  "platforms": [],
+  "safe_mode": null,
+  "content_pillars": [],
+  "themes": [],
+  "cadence_per_week": null,
+  "posting_times": []
+}

@@ -127,7 +127,9 @@ def detect_model_type(model):
     diff_model = model.model.diffusion_model
 
     if hasattr(diff_model, "patch_size") and not hasattr(diff_model, "patchifier"):
-        return "wan", tuple(diff_model.patch_size), 4
+        raw = diff_model.patch_size
+        patch_size = (1, raw, raw) if isinstance(raw, int) else tuple(raw)
+        return "wan", patch_size, 4
 
     if hasattr(diff_model, "patchifier"):
         return "ltx", (1, 1, 1), int(diff_model.vae_scale_factors[0])

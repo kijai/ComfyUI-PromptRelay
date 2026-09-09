@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PromptRelay · Cinematic Sequence</title>
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#141821; --panel2:#1b2130; --line:#252c3a;
+    --text:#e6e9f0; --muted:#8a93a6; --accent:#6c5ce7; --accent2:#8b7bff;
+    --ok:#2ecc71; --run:#f1c40f; --fail:#e74c3c; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#1a1030 0,var(--bg) 55%);
+    color:var(--text);font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--accent2);text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .logo{width:36px;height:36px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:grid;place-items:center;font-size:19px}
+  header h1{font-size:18px;margin:0}
+  header .sub{color:var(--muted);font-size:12px}
+  .badge{margin-left:auto;font-size:12px;padding:5px 12px;border-radius:20px;
+    background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+  .badge.ready{color:var(--ok);border-color:#204d33}
+  .badge.off{color:var(--fail);border-color:#4d2020}
+  .navlink{font-size:12px;padding:5px 12px;border-radius:20px;background:var(--panel2);
+    border:1px solid var(--line);color:var(--muted)}
+  .navlink:hover{color:var(--text);border-color:var(--accent2)}
+  .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;align-items:start}
+  .panel{background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:16px}
+  .panel h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 14px;display:flex;align-items:center;gap:8px}
+  .panel h2 .count{color:var(--accent2);background:var(--panel2);border:1px solid var(--line);
+    border-radius:20px;padding:1px 9px;font-size:11px;letter-spacing:0}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 6px}
+  textarea,input,select{width:100%;background:var(--panel2);color:var(--text);
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;outline:none}
+  textarea{min-height:54px;resize:vertical}
+  textarea:focus,input:focus,select:focus{border-color:var(--accent)}
+  .row{display:flex;gap:10px}
+  .row>div{flex:1}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{font-size:12px;padding:5px 11px;border-radius:16px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--muted);cursor:pointer;transition:.12s}
+  .chip:hover{border-color:var(--accent2);color:var(--text)}
+  .chip .k{color:var(--accent2);font-weight:700;margin-right:5px;text-transform:uppercase;font-size:10px}
+  /* shots */
+  .shot{border:1px solid var(--line);border-radius:12px;background:var(--panel2);
+    padding:12px;margin-bottom:10px}
+  .shot .top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .shot .lbl{font-weight:800;color:var(--accent2);font-size:14px;min-width:30px}
+  .shot .grab{color:var(--muted);cursor:grab;font-size:15px}
+  .shot .rm{margin-left:auto;background:var(--panel);border:1px solid var(--line);
+    color:var(--muted);border-radius:8px;padding:4px 9px;cursor:pointer;font-size:12px}
+  .shot .rm:hover{color:var(--fail);border-color:#4d2020}
+  .shot .selrow{display:flex;gap:8px;margin-bottom:8px}
+  .shot .selrow>*{flex:1}
+  .shot .imgrow{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .shot .thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;border:1px solid var(--line)}
+  .minibtn{background:var(--panel);border:1px solid var(--line);color:var(--muted);
+    border-radius:8px;padding:7px 10px;cursor:pointer;font-size:12px}
+  .minibtn:hover{color:var(--text);border-color:var(--accent2)}
+  .addshot{width:100%;background:var(--panel2);border:1.5px dashed var(--line);color:var(--muted);
+    border-radius:11px;padding:11px;cursor:pointer;font-weight:600;transition:.15s}
+  .addshot:hover{border-color:var(--accent);color:var(--text)}
+  .proj{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel2);margin-bottom:8px}
+  .proj.active{border-color:var(--accent)}
+  .proj .info{flex:1;min-width:0}
+  .proj .nm{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .proj .meta2{font-size:11px;color:var(--muted)}
+  .proj .load{background:var(--panel);border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:6px 11px;cursor:pointer;font-size:12px}
+  .proj .load:hover{border-color:var(--accent2)}
+  .proj .del{background:var(--panel);border:1px solid var(--line);color:var(--muted);
+    border-radius:8px;padding:6px 9px;cursor:pointer;font-size:12px}
+  .proj .del:hover{color:var(--fail);border-color:#4d2020}
+  .preview{background:#0d1017;border:1px solid var(--line);border-radius:11px;padding:12px;
+    font:12.5px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;color:#cfd6e4;
+    white-space:pre-wrap;word-break:break-word;min-height:60px;margin-top:6px}
+  .preview .h{color:var(--accent2)}
+  .preview .sn{color:var(--run);font-weight:700}
+  .btns{display:flex;gap:10px;margin-top:16px}
+  button{border:0;border-radius:10px;padding:11px 16px;font:inherit;font-weight:600;cursor:pointer}
+  .primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;flex:1}
+  .primary:disabled{opacity:.5;cursor:not-allowed}
+  .ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+  .check{display:flex;align-items:center;gap:8px;margin-top:14px;color:var(--text);font-size:13px}
+  .check input{width:auto}
+  .result-video{width:100%;background:#000;border-radius:12px;aspect-ratio:16/9;
+    display:grid;place-items:center;color:var(--muted);overflow:hidden;text-align:center;padding:10px}
+  .result-video video{width:100%;height:100%;object-fit:contain;background:#000}
+  .meta{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .status-pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;
+    background:var(--panel2);border:1px solid var(--line)}
+  .status-pill.SUCCEEDED{color:var(--ok);border-color:#204d33}
+  .status-pill.RUNNING,.status-pill.QUEUED{color:var(--run);border-color:#4d4620}
+  .status-pill.FAILED{color:var(--fail);border-color:#4d2020}
+  .pending{font-size:11px;padding:3px 9px;border-radius:6px;background:rgba(241,196,15,.12);
+    border:1px solid #4d4620;color:var(--run)}
+  .resume-banner{background:rgba(241,196,15,.10);border:1px solid #4d4620;border-radius:11px;
+    padding:11px 14px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .resume-banner .rb-txt{font-size:13px;color:var(--text)}
+  .resume-banner button{background:var(--run);color:#20180a;border-radius:8px;padding:7px 13px;font-size:12px}
+  .resume-banner .rb-x{background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+  .hint{font-size:11px;color:var(--muted);margin-top:6px}
+  .spinner{width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent2);
+    border-radius:50%;animation:spin .8s linear infinite;display:inline-block;vertical-align:-2px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--panel2);
+    border:1px solid var(--line);padding:11px 18px;border-radius:11px;font-size:13px;opacity:0;
+    transition:opacity .25s;pointer-events:none;z-index:50;max-width:80vw}
+  #toast.show{opacity:1}
+  #toast.err{border-color:var(--fail);color:#ffb4ab}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🎞️</div>
+    <div>
+      <h1>Cinematic Sequence</h1>
+      <div class="sub">Seedance-style multi-shot composer · local LTX 2.3 · unlimited &amp; private</div>
+    </div>
+    <a class="navlink" href="/promptrelay/seedance/ui">← Video Studio</a>
+    <div id="badge" class="badge">checking…</div>
+  </header>
+
+  <div id="resumeBanner" class="resume-banner" style="display:none"></div>
+
+  <div class="grid">
+    <!-- LEFT: composer -->
+    <div>
+      <div class="panel">
+        <h2>Global style</h2>
+        <textarea id="style" placeholder="Cinematic Fantasy Action, Arri Alexa 65, warm golden-hour light, epic and magical"></textarea>
+        <div class="hint">Prepended to every shot so the look stays consistent. Click a chip to append it.</div>
+        <div class="chips" id="styleChips"></div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h2>Shots <span class="count" id="shotCount">0</span></h2>
+        <div id="shots"></div>
+        <button class="addshot" id="addShot">+ Add shot</button>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h2>Projects <span class="count" id="projCount">0</span></h2>
+        <div class="row">
+          <div style="flex:2"><input id="projName" placeholder="Project / client name…" /></div>
+          <div><button class="ghost" id="saveProj" style="width:100%">Save current</button></div>
+        </div>
+        <div class="hint" id="projActive"></div>
+        <div id="projList" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: preview + settings + result -->
+    <div>
+      <div class="panel">
+        <h2>Prompt · Seedance format</h2>
+        <div class="preview" id="preview">Add a style and shots to see the compiled script…</div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h2>Output</h2>
+        <div class="row">
+          <div>
+            <label>Resolution</label>
+            <select id="resolution">
+              <option value="720p">720p · 16:9</option>
+              <option value="1080p" selected>1080p · 16:9</option>
+              <option value="1080p_vertical">1080p · 9:16</option>
+              <option value="720p_vertical">720p · 9:16</option>
+              <option value="square">Square · 1:1</option>
+              <option value="4k">4K · 16:9 (upscaled)</option>
+            </select>
+          </div>
+          <div>
+            <label>Shot length</label>
+            <select id="duration">
+              <option value="3s">3s</option>
+              <option value="5s" selected>5s</option>
+              <option value="8s">8s</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Quality</label>
+            <select id="quality">
+              <option value="fast" selected>Fast (Q4)</option>
+              <option value="hq">HQ (Q5)</option>
+              <option value="max">Max (Q6)</option>
+            </select>
+          </div>
+          <div>
+            <label>Transition</label>
+            <select id="transition">
+              <option value="crossfade" selected>Crossfade</option>
+              <option value="cut">Hard cut</option>
+            </select>
+          </div>
+        </div>
+        <label style="margin-top:12px">Seed <span class="hint" style="margin-left:6px">(shared across shots for continuity)</span></label>
+        <input id="seed" placeholder="random" />
+        <label class="check"><input type="checkbox" id="audio" checked /> Native audio <span class="hint">(LTX generates sound; off = mute)</span></label>
+        <div class="btns">
+          <button class="primary" id="go">Generate sequence</button>
+        </div>
+      </div>
+
+      <div class="panel" id="resultPanel" style="margin-top:16px;display:none">
+        <h2>Result</h2>
+        <div class="result-video" id="video">no render yet</div>
+        <div class="meta" id="meta"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const API = "/promptrelay/seedance/api";
+let GRAMMAR = null;
+const shots = [];   // {id, size, movement, action, image_token, thumb}
+let pollTimer = null;
+
+const $ = s => document.querySelector(s);
+function toast(msg, err){ const t=$("#toast"); t.textContent=msg; t.className="show"+(err?" err":""); setTimeout(()=>t.className="",2600); }
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+async function init(){
+  try{
+    const g = await (await fetch(`${API}/sequence/grammar`)).json();
+    GRAMMAR = g;
+    const b = $("#badge");
+    if(g.status && g.status.sequence){ b.textContent="LTX ready · local"; b.className="badge ready"; }
+    else { b.textContent="LTX offline"; b.className="badge off"; }
+    if(g.status && !g.status.audio){ /* audio skeleton — checkbox stays informational */ }
+    buildStyleChips();
+    addShot(); addShot();          // start with two shots, like the ad
+  }catch(e){ $("#badge").textContent="offline"; $("#badge").className="badge off"; }
+}
+
+function buildStyleChips(){
+  const wrap = $("#styleChips");
+  const groups = [["Camera", GRAMMAR.cameras], ["Light", GRAMMAR.lighting], ["Mood", GRAMMAR.moods]];
+  wrap.innerHTML = "";
+  for(const [k, map] of groups){
+    for(const val of Object.values(map)){
+      const c = document.createElement("div");
+      c.className = "chip";
+      c.innerHTML = `<span class="k">${k}</span>${val}`;
+      c.onclick = () => {
+        const el = $("#style");
+        el.value = el.value.trim() ? el.value.replace(/[.\s]*$/,"") + ", " + val : val;
+        render();
+      };
+      wrap.appendChild(c);
+    }
+  }
+}
+
+function selHtml(map, chosen){
+  return Object.entries(map).map(([v,l]) =>
+    `<option value="${v}"${v===chosen?" selected":""}>${l}</option>`).join("");
+}
+
+function addShot(){
+  if(shots.length >= 10){ toast("10 shots max", true); return; }
+  const s = { id: uid(), size: "medium", movement: "static", action: "", image_token: null, thumb: null };
+  shots.push(s);
+  renderShots();
+}
+
+function removeShot(id){
+  const i = shots.findIndex(s=>s.id===id);
+  if(i>=0) shots.splice(i,1);
+  renderShots();
+}
+
+function renderShots(){
+  const wrap = $("#shots");
+  wrap.innerHTML = "";
+  shots.forEach((s, i) => {
+    const el = document.createElement("div");
+    el.className = "shot";
+    el.innerHTML = `
+      <div class="top">
+        <span class="lbl">S${i+1}</span>
+        <button class="rm" data-rm="${s.id}">Remove</button>
+      </div>
+      <div class="selrow">
+        <select data-f="size" data-id="${s.id}">${selHtml(GRAMMAR.shot_sizes, s.size)}</select>
+        <select data-f="movement" data-id="${s.id}">${selHtml(GRAMMAR.movements, s.movement)}</select>
+      </div>
+      <textarea data-f="action" data-id="${s.id}" placeholder="What happens in this shot…">${s.action||""}</textarea>
+      <div class="imgrow">
+        ${s.thumb ? `<img class="thumb" src="${s.thumb}">` : ""}
+        <button class="minibtn" data-img="${s.id}">${s.image_token ? "Change start image" : "+ Start image (i2v)"}</button>
+        ${s.image_token ? `<button class="minibtn" data-clr="${s.id}">clear</button>` : ""}
+      </div>`;
+    wrap.appendChild(el);
+  });
+  $("#shotCount").textContent = shots.length;
+  // wire events
+  wrap.querySelectorAll("[data-f]").forEach(el=>{
+    const handler = () => { const s=shots.find(x=>x.id===el.dataset.id); if(s){ s[el.dataset.f]=el.value; render(); } };
+    el.addEventListener(el.tagName==="TEXTAREA"?"input":"change", handler);
+  });
+  wrap.querySelectorAll("[data-rm]").forEach(b=> b.onclick=()=>removeShot(b.dataset.rm));
+  wrap.querySelectorAll("[data-img]").forEach(b=> b.onclick=()=>pickImage(b.dataset.img));
+  wrap.querySelectorAll("[data-clr]").forEach(b=> b.onclick=()=>{ const s=shots.find(x=>x.id===b.dataset.clr); s.image_token=null; s.thumb=null; renderShots(); render(); });
+  render();
+}
+
+function pickImage(id){
+  const inp = document.createElement("input");
+  inp.type="file"; inp.accept="image/*";
+  inp.onchange = async () => {
+    const f = inp.files[0]; if(!f) return;
+    const fd = new FormData(); fd.append("file", f);
+    try{
+      const r = await (await fetch(`${API}/upload`, {method:"POST", body:fd})).json();
+      if(r.token){ const s=shots.find(x=>x.id===id); s.image_token=r.token; s.thumb=`${API}/upload/${r.token}`; renderShots(); toast("start image added"); }
+      else toast(r.error||"upload failed", true);
+    }catch(e){ toast("upload failed", true); }
+  };
+  inp.click();
+}
+
+// client-side mirror of sequence.compile_sequence (same S#: [size, move] + [action] format)
+function render(){
+  const style = $("#style").value.trim();
+  const pv = $("#preview");
+  if(!style && shots.every(s=>!s.action.trim())){ pv.textContent="Add a style and shots to see the compiled script…"; return; }
+  let html = style ? `<span class="h">${esc(style)}.</span>\n` : "";
+  shots.forEach((s,i)=>{
+    const bracket = [labelOf(GRAMMAR.shot_sizes,s.size), labelOf(GRAMMAR.movements,s.movement)].filter(Boolean).join(", ");
+    const action = s.action.trim();
+    html += `<span class="sn">S${i+1}:</span> [${esc(bracket||"shot")}] + [${esc(action||"…")}]${s.image_token?"  ⟵ i2v":""}\n`;
+  });
+  pv.innerHTML = html;
+}
+function labelOf(map, v){ return map[v]||v||""; }
+function esc(s){ return (s||"").replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+async function generate(){
+  const style = $("#style").value.trim();
+  if(!style && shots.every(s=>!s.action.trim())){ toast("add a style or at least one shot action", true); return; }
+  if(shots.length < 1){ toast("add at least one shot", true); return; }
+  const payload = {
+    style,
+    shots: shots.map(s=>({ size:s.size, movement:s.movement, action:s.action.trim(), image_token:s.image_token })),
+    resolution: $("#resolution").value,
+    duration: $("#duration").value,
+    quality: $("#quality").value,
+    transition: $("#transition").value,
+    audio: $("#audio").checked,
+    seed: $("#seed").value.trim() || "random",
+  };
+  const go = $("#go"); go.disabled=true; go.textContent="Queuing…";
+  try{
+    const r = await (await fetch(`${API}/sequence`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)})).json();
+    if(r.error){ toast(r.error, true); go.disabled=false; go.textContent="Generate sequence"; return; }
+    poll(r.id);
+  }catch(e){ toast("request failed", true); go.disabled=false; go.textContent="Generate sequence"; }
+}
+
+function poll(id){
+  $("#resultPanel").style.display="block";
+  const vid=$("#video"), meta=$("#meta");
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async ()=>{
+    let t; try{ t = await (await fetch(`${API}/task/${id}`)).json(); }catch(e){ return; }
+    const st = t.status;
+    let phase = t.phase ? ` · ${t.phase}` : "";
+    if(st==="QUEUED"||st==="RUNNING"){
+      vid.innerHTML = `<div><span class="spinner"></span><div style="margin-top:8px">${st}${phase}</div>`+
+        (t.shots_total?`<div class="hint">${t.shots_done||0}/${t.shots_total} shots</div>`:"")+`</div>`;
+      meta.innerHTML = `<span class="status-pill ${st}">${st}</span>`;
+    } else if(st==="SUCCEEDED"){
+      clearInterval(pollTimer);
+      vid.innerHTML = `<video src="${t.video_url}" controls autoplay loop muted></video>`;
+      const pend = (t.pending||[]).map(p=>`<span class="pending">⏳ ${p} pending</span>`).join("");
+      meta.innerHTML = `<span class="status-pill SUCCEEDED">DONE</span>`+
+        `<span>seed ${t.seed}</span><a href="${t.video_url}" download>download</a>${pend}`;
+      const go=$("#go"); go.disabled=false; go.textContent="Generate sequence";
+      toast("sequence rendered");
+    } else if(st==="FAILED"){
+      clearInterval(pollTimer);
+      vid.innerHTML = `<div style="color:var(--fail)">✕ failed</div>`;
+      const canResume = t.resumable || (t.shots_done||0) > 0;
+      const rb = canResume ? `<button class="load" onclick="resumeTask('${id}')">▶ Resume (${t.shots_done||0}/${t.shots_total||"?"} done)</button>` : "";
+      meta.innerHTML = `<span class="status-pill FAILED">FAILED</span><span>${esc(t.error||"")}</span>${rb}`;
+      const go=$("#go"); go.disabled=false; go.textContent="Generate sequence";
+      toast(t.error||"render failed", true);
+      loadResumable();
+    }
+  }, 1500);
+}
+
+// ── Projects / templates ────────────────────────────────────────────────────
+let activeProjectId = null;
+
+function gatherSettings(){
+  return { resolution:$("#resolution").value, duration:$("#duration").value,
+           quality:$("#quality").value, transition:$("#transition").value,
+           audio:$("#audio").checked, seed:$("#seed").value.trim() };
+}
+function applySettings(s){
+  if(!s) return;
+  if(s.resolution) $("#resolution").value = s.resolution;
+  if(s.duration) $("#duration").value = s.duration;
+  if(s.quality) $("#quality").value = s.quality;
+  if(s.transition) $("#transition").value = s.transition;
+  $("#audio").checked = !!s.audio;
+  $("#seed").value = s.seed || "";
+}
+
+async function loadProjects(){
+  let items = [];
+  try{ items = (await (await fetch(`${API}/projects`)).json()).items || []; }catch(e){ return; }
+  $("#projCount").textContent = items.length;
+  const wrap = $("#projList");
+  if(!items.length){ wrap.innerHTML = `<div class="hint">No saved projects yet. Build a sequence, name it, and hit “Save current”.</div>`; return; }
+  wrap.innerHTML = "";
+  items.forEach(p=>{
+    const el = document.createElement("div");
+    el.className = "proj" + (p.id===activeProjectId ? " active" : "");
+    const n = (p.shots||[]).length;
+    el.innerHTML = `<div class="info"><div class="nm">${esc(p.name)}</div>
+      <div class="meta2">${n} shot${n===1?"":"s"} · ${new Date((p.updated||0)*1000).toLocaleDateString()}</div></div>
+      <button class="load" data-load="${p.id}">Load</button>
+      <button class="del" data-del="${p.id}">✕</button>`;
+    wrap.appendChild(el);
+  });
+  wrap.querySelectorAll("[data-load]").forEach(b=> b.onclick=()=>openProject(b.dataset.load));
+  wrap.querySelectorAll("[data-del]").forEach(b=> b.onclick=()=>deleteProject(b.dataset.del));
+}
+
+async function saveProject(){
+  const name = $("#projName").value.trim();
+  if(!name){ toast("name the project first", true); return; }
+  const payload = { name, style:$("#style").value.trim(),
+    shots: shots.map(s=>({ size:s.size, movement:s.movement, action:s.action.trim(),
+                           image_token:s.image_token, thumb:s.thumb })),
+    settings: gatherSettings() };
+  if(activeProjectId) payload.id = activeProjectId;   // update in place if one is open
+  try{
+    const r = await (await fetch(`${API}/projects`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)})).json();
+    if(r.error){ toast(r.error, true); return; }
+    activeProjectId = r.project.id;
+    $("#projActive").textContent = `Editing project: ${r.project.name}`;
+    toast("project saved");
+    loadProjects();
+  }catch(e){ toast("save failed", true); }
+}
+
+async function openProject(id){
+  let p;
+  try{ p = (await (await fetch(`${API}/projects/${id}`)).json()).project; }catch(e){ return; }
+  if(!p){ toast("project not found", true); return; }
+  $("#style").value = p.style || "";
+  $("#projName").value = p.name || "";
+  shots.length = 0;
+  (p.shots||[]).forEach(s=> shots.push({ id:uid(), size:s.size||"medium",
+    movement:s.movement||"static", action:s.action||"",
+    image_token:s.image_token||null, thumb:s.thumb||(s.image_token?`${API}/upload/${s.image_token}`:null) }));
+  if(!shots.length) addShot();
+  applySettings(p.settings);
+  activeProjectId = id;
+  $("#projActive").textContent = `Editing project: ${p.name}`;
+  renderShots(); loadProjects();
+  toast(`loaded “${p.name}”`);
+}
+
+async function deleteProject(id){
+  try{ await fetch(`${API}/projects/${id}`, {method:"DELETE"}); }catch(e){ return; }
+  if(activeProjectId===id){ activeProjectId=null; $("#projActive").textContent=""; }
+  toast("project deleted");
+  loadProjects();
+}
+
+// ── Resume interrupted sequences ────────────────────────────────────────────
+async function loadResumable(){
+  let items = [];
+  try{ items = (await (await fetch(`${API}/sequence/resumable`)).json()).items || []; }catch(e){ return; }
+  const b = $("#resumeBanner");
+  if(!items.length){ b.style.display="none"; b.innerHTML=""; return; }
+  b.style.display="flex";
+  b.innerHTML = `<span class="rb-txt">⏸ ${items.length} interrupted sequence${items.length>1?"s":""} can be resumed:</span>` +
+    items.map(it=>`<button onclick="resumeTask('${it.id}')">▶ ${esc((it.label||"sequence").slice(0,30))} · ${it.done}/${it.total}</button>`).join("");
+}
+
+async function resumeTask(id){
+  try{
+    const r = await (await fetch(`${API}/sequence/resume`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id})})).json();
+    if(r.error){ toast(r.error, true); return; }
+    toast("resuming — rendering only the missing shots");
+    $("#resumeBanner").style.display="none";
+    const go=$("#go"); go.disabled=true; go.textContent="Resuming…";
+    poll(r.id);
+  }catch(e){ toast("resume failed", true); }
+}
+
+$("#addShot").onclick = addShot;
+$("#style").addEventListener("input", render);
+$("#go").onclick = generate;
+$("#saveProj").onclick = saveProject;
+init().then(()=>{ loadProjects(); loadResumable(); });
+</script>
+</body>
+</html>

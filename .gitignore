@@ -1,1 +1,16 @@
 *.pyc
+channel_studio/.secrets/
+channel_studio/schedule_queue.json
+social_automation/.secrets/
+social_automation/contacts.json
+social_automation/pending.json
+social_automation/logs/
+__pycache__/
+relay_studio/projects/
+relay_director/projects/
+seedance_studio/uploads/
+seedance_studio/checkpoints/
+seedance_studio/history.jsonl
+seedance_studio/projects.json
+lena_studio/outputs/
+lena_studio/dataset_staging/
